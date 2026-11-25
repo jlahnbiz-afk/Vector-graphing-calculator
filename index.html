@@ -109,7 +109,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 -->
 
 <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>VectorGraph v1.0</title>
+<title>VectorGraph v1.0.2</title>
 <style>
 :root{color-scheme:dark;--bg:#0c1019;--panel:#151a27;--panel2:#1b2232;--line:#2c3548;--text:#edf2fb;--muted:#99a8bf;--accent:#7d9dff;--good:#6de0bd;--bad:#ff849e}
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}button,input,select{font:inherit}button,select{cursor:pointer}button{color:var(--text)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -476,12 +476,24 @@ body.dark-ui .constant-tile{border-color:#354761!important;background:#1b273b}.g
 .constants-section .sectiontitle h2,.expression-section .sectiontitle h2 {margin:0;line-height:1.25;}
 #addConstants,#add,#addBottom {box-sizing:border-box; display:inline-flex; justify-content:center; align-items:center; width:28px;height:28px;min-width:28px;min-height:28px;padding:0;font-size:20px;line-height:1;font-weight:500; border-radius:6px;}
 #addBottom {display:flex;margin:6px auto 0;}
+</style><style id="v101-compact-settings">
+.graph-settings-menu .field-mode-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.graph-settings-menu .field-mode-grid select{min-width:0;width:100%;padding:5px 7px;font-size:12px}
+.graph-settings-menu .new-settings.viewport-settings{margin:8px 0;padding:10px;gap:9px;border:1px solid #e2eaf4;border-radius:10px}
+body.dark-ui .graph-settings-menu .new-settings.viewport-settings{border-color:#3b4d69}
+.graph-settings-menu .new-settings .opacity-settings{padding:0;border:0;background:transparent;gap:6px}
+body.dark-ui .graph-settings-menu .new-settings .opacity-settings{background:transparent}
+.graph-settings-menu .check-setting{align-items:center;gap:7px}.graph-settings-menu .check-setting input{margin:0}
+.graph-settings-menu .slider-pair input[type=range],.expression-style input[type=range]{margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:transparent!important;min-width:0;flex:1 1 0;width:100%;height:18px;accent-color:#468fcd;cursor:pointer}
+.graph-settings-menu .slider-pair{margin:0;gap:8px}.graph-settings-menu .slider-pair .slider-text{flex:0 0 72px;width:72px;min-width:0}
+.expression-style .style-range-line{display:grid;grid-template-columns:92px minmax(0,1fr) 37px;gap:6px;align-items:center}.expression-style .style-range-line input[type=range]{display:block;width:100%;min-width:0}.expression-style .range-value{min-width:0}
+@media(max-width:430px){.expression-style .style-range-line{grid-template-columns:76px minmax(0,1fr) 31px;gap:4px}}
 </style></head>
 <body class="dark-ui">
 <div class="app">
 <aside class="sidebar" id="sidebar">
 <div class="head">
-<div class="brand"><div class="row" style="gap:9px"><div class="mark">∇</div><div><h1>VectorGraph <span class="chip">v1.0 · OFFLINE</span></h1></div></div><div class="brand-actions"><button class="btn ghost" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="true" title="Switch light and dark interface">☾ Dark</button><button type="button" class="sidebar-button" id="collapseSidebar" aria-label="Collapse sidebar" title="Collapse sidebar (M)">☰ <kbd>M</kbd></button></div></div>
+<div class="brand"><div class="row" style="gap:9px"><div class="mark">∇</div><div><h1>VectorGraph <span class="chip">v1.0.2 · OFFLINE</span></h1></div></div><div class="brand-actions"><button class="btn ghost" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="true" title="Switch light and dark interface">☾ Dark</button><button type="button" class="sidebar-button" id="collapseSidebar" aria-label="Collapse sidebar" title="Collapse sidebar (M)">☰ <kbd>M</kbd></button></div></div>
 
 </div>
 <div class="scroll">
@@ -493,7 +505,7 @@ body.dark-ui .constant-tile{border-color:#354761!important;background:#1b273b}.g
 <button class="btn add-row-bottom" id="addBottom" type="button" aria-label="Add expression" title="Add expression">+</button>
 <div class="mathkeys-wrap"><div aria-label="LaTeX symbol toolbar" class="mathkeys" id="mathkeys"></div></div>
 <details class="examples"><summary>▸ Examples &amp; graph presets</summary><div class="preset"><label class="fieldlabel" for="preset">Load a graph</label><select id="preset"><option value="">Choose an example…</option><option value="showcase">3D: Vector-field &amp; surface showcase</option><option value="basis">3D: i, j, k and normalized vectors</option><option value="frenet">3D: Frenet T̂, N̂, B̂ frame</option><option value="cloud">3D: f(x,y,z)=xyz · scalar cloud</option><option value="slice">2D: field heatmap and z=0 contour</option><option value="surface">3D: Ripple surface</option><option value="saddle">3D: Saddle + gradient</option><option value="helix">3D: Helix</option><option value="field">3D: Rotating vector field</option><option value="sine">2D: Sine and parabola</option><option value="circle">2D: Implicit circle</option><option value="param2">2D: Parametric curve</option></select></div></details>
-<details class="examples" id="projectTools"><summary>▸ Project files</summary><div class="actions" style="margin:9px 0"><button class="btn" type="button" id="saveProject">↓ Save project</button><button class="btn" type="button" id="openProject">↑ Open project</button><input type="file" id="projectFile" accept=".json,.vgproject,application/json" hidden></div><p class="subtext">Save editable equations, constants, styles and graph settings to a portable file. Opening a project replaces the current workspace.</p><p class="subtext" id="projectStatus" role="status" aria-live="polite"></p></details>
+<details class="examples" id="projectTools"><summary>▸ Project files</summary><div class="actions" style="margin:9px 0"><button class="btn" type="button" id="saveProject">↓ Save project</button><button class="btn" type="button" id="openProject">↑ Open project</button><input type="file" id="projectFile" accept=".json,.vgproject,application/json" hidden></div><p class="subtext" id="projectStatus" role="status" aria-live="polite"></p></details>
 
 </section>
 
@@ -507,7 +519,7 @@ body.dark-ui .constant-tile{border-color:#354761!important;background:#1b273b}.g
 <div class="hidden" id="directionBlock"><label>Direction v (normalized automatically)</label><div class="vec3"><input aria-label="direction x" id="dx" value="1"/><input aria-label="direction y" id="dy" value="1"/><input aria-label="direction z" id="dz" value="0"/></div></div>
 <div class="hidden" id="boundsBlock"><label>Integration bounds a → b (x)</label><div class="vec2"><input id="lower" step="any" type="number" value="0"/><input id="upper" step="any" type="number" value="2"/></div></div>
 <div class="hidden" id="boundsYBlock"><label>y bounds c → d</label><div class="vec2"><input id="lowerY" step="any" type="number" value="0"/><input id="upperY" step="any" type="number" value="2"/></div></div>
-<div class="actions"><button class="btn primary" id="compute">Compute</button><button class="btn" id="plotresult">Plot result</button></div><div class="calc-math-preview" id="calc-math-preview">∇f</div><div class="calcresult" id="calcresult">Choose an operation and press Compute.</div><p class="subtext">Exact symbolic differentiation for supported functions; numerical quadrature for integrals. Plot result adds compatible formulas to your graph.</p></div></details>
+<div class="actions"><button class="btn primary" id="compute">Compute</button><button class="btn" id="plotresult">Plot result</button></div><div class="calc-math-preview" id="calc-math-preview">∇f</div><div class="calcresult" id="calcresult">Choose an operation and press Compute.</div></div></details>
 <details class="section examples syntax-guide vg-tutorial" id="expressionTutorial"><summary>Expression tutorial · Tips &amp; tricks</summary>
 <div class="vg-tutorial-content">
 <h3>1. Start typing mathematics</h3>
@@ -527,43 +539,41 @@ body.dark-ui .constant-tile{border-color:#354761!important;background:#1b273b}.g
 <h3>4. Calculus and domains</h3>
 <p>Type <code>int</code>, <code>sum</code>, <code>prod</code> or <code>lim</code> to create an operator. Use Up/Down to switch bounds. Type <code>d</code> or <code>partial</code>, then Tab for a derivative fraction. Type <code>del</code> or <code>nabla</code> for ∇. Define a function before differentiating it; prime notation also works for vector functions.</p>
 <p>Use <code>forall</code> followed by a variable, then Tab to accept ∈ (or type <code>\in</code>). Use parentheses for exclusive bounds and square brackets for inclusive bounds, and <code>union</code> / <code>intersection</code> to combine intervals. Type <code>&lt;=</code> or <code>&gt;=</code> for inclusive inequalities.</p>
-<h3>5. Graph and workspace tips</h3>
+<h3>5. Graph and workspace tips</h3><p>Vector length: Actual uses magnitude, Relative scales to the largest visible vector, and Constant makes lengths equal. Grid aligned uses rounded coordinate intervals; Box aligned samples the visible box. Change each field’s density and opacity via its colored circle. In 2D, 3D graphs are sliced at z = 0. GPU rendering automatically falls back to CPU when unavailable.</p>
 <p>Click a colored circle for appearance and visibility options. Outside the editor, press <kbd>D</kbd> to switch dimensions, <kbd>M</kbd> to toggle the sidebar or <kbd>1</kbd>–<kbd>9</kbd> to focus an expression. Use Project files to save editable work, or PNG/SVG to export an image. Numerical calculus is approximate.</p>
 <h3>6. Copyable LaTeX examples</h3>
 <div class="syntax-grid"><div><strong>Variables &amp; functions</strong><code>a=2</code><code>f(x)=a\sin(x)</code><code>g(x,y)=x^2+y^2</code></div><div><strong>Basis &amp; named vectors</strong><code>2\hat{\imath}+3\hat{\jmath}-\hat{k}</code><code>\vec{v}=3i+4j</code><code>\hat{v}</code></div><div><strong>Unit Frenet frame</strong><code>\vec{v}(t)=\langle\cos(t),\sin(t),t\rangle</code><code>\hat{T}_{\vec{v}}(1)</code><code>\hat{N}_{\vec{v}}(1)</code><code>\hat{B}_{\vec{v}}(1)</code></div><div><strong>Calculus in expressions</strong><code>diff(f,x), laplacian(f)</code><code>\nabla f, \nabla\cdot\vec{F}</code><code>integral(f,x,0,1)</code></div><div><strong>Curve domains &amp; line integrals</strong><code>\vec{r}(t)=\langle\cos(t),\sin(t),0\rangle\forall t\in[0,2\pi]</code><code>\int_{\vec{r}}1ds</code><code>\int_{\vec{r}}^{\forall t\in[0,\pi]}1ds</code><code>\int_{\vec{r}}1ds\forall t\in[0,\pi]</code></div></div><p class="key-hint">Frenet vectors take an explicit argument, e.g. \hat{T}_{\vec{v}}(1). Omit the subscript when exactly one vector function is defined. Use curvature κ(t) and torsion τ(t). A hat normalizes a nonzero vector. Scalar parameters are independent of x, y, z, and t.</p></div></details>
-</div><div class="foot">Everything runs in this one HTML file. No internet, login, or installation required. Verify numerical approximations for important calculations.</div>
+</div><div class="foot">Numerical results may be approximate.</div>
 </aside>
 <div class="sidebar-resizer" id="sidebarResizer" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" tabindex="0"></div>
 <main class="main"><button class="sidebar-reopen" id="reopenSidebar" type="button" title="Show sidebar (M)" aria-label="Show sidebar">☰ <kbd>M</kbd></button><div class="axis-indicator" hidden="" id="axisIndicator"></div><canvas aria-label="Interactive mathematical graph" id="graph"></canvas><div class="toolbar"><button class="btn" id="home">⌂ Home</button><div class="export-control" id="exportControl"><button class="btn ghost export-main" id="export" type="button" title="Export graph (hover for formats)" aria-label="Export graph">↓ PNG</button><div class="export-dropdown" role="group" aria-label="Download format"><button type="button" id="exportPng">PNG image</button><button type="button" id="exportSvg">SVG vector image</button></div></div><button aria-controls="graphMenu" aria-expanded="false" class="btn" id="graphSettings">▤ Graph</button></div><div class="graph-settings-menu" hidden="" id="graphMenu"><section class="section"><div class="sectiontitle"><h2>Graph settings</h2><button aria-label="Close graph settings" class="btn ghost" id="closeGraphSettings">× Close</button></div><div class="axes-setting" role="group" aria-label="Graph visibility"><button class="btn" id="axes" type="button" aria-pressed="true">Axes: on</button><button class="btn" id="axisNumbers" type="button" aria-pressed="true">Numbers: on</button><button class="btn" id="gridLines" type="button" aria-pressed="true">Grid: on</button></div><div class="quick-view-grid"><div class="viewport-settings" title="How much of the canvas the cube occupies"><div class="vp-head"><strong>Cube size</strong><output id="cubeSizeValue">57%</output></div>
 <div class="cloud-setting"><div class="setting-label"><label for="cubeSize" class="visually-hidden">Cube size</label></div><input id="cubeSize" max="0.38" min="0.14" step="0.005" type="range" value="0.285"/></div></div>
 <div class="viewport-settings" title="Near/far face perspective; larger numbers approach orthographic projection"><div class="vp-head"><strong>Perspective</strong><output id="cameraDistanceValue">9× cube radius</output></div><div class="cloud-setting"><div class="setting-label"><label for="cameraDistance" class="visually-hidden">Camera distance</label></div><input id="cameraDistance" type="range" min="3.2" max="60" step="0.2" value="9"/></div></div>
-</div><div class="viewport-settings"><div class="vp-head"><strong>2D scalar-field opacity</strong></div>
-<div class="cloud-setting"><div class="setting-label"><label for="heatOpacity" class="visually-hidden">2D scalar-field opacity</label><output id="heatOpacityValue">72%</output></div><input id="heatOpacity" max="1" min="0.1" step="0.05" type="range" value="0.72"/></div></div>
+</div>
 <div class="viewport-settings"><div class="vp-head range-heading"><strong>Visible coordinate ranges</strong><button class="btn" id="resetBounds" title="Reset ranges to the default ±6">Reset ±6</button></div>
 <div class="vp-bound-header"><span>Axis</span><span>Minimum</span><span>Maximum</span></div>
 <div class="vp-bound-row"><b style="color:#c64e65">X</b><input aria-label="X minimum" id="bound-x-min" step="any" type="number"/><input aria-label="X maximum" id="bound-x-max" step="any" type="number"/></div>
 <div class="vp-bound-row"><b style="color:#148c64">Y</b><input aria-label="Y minimum" id="bound-y-min" step="any" type="number"/><input aria-label="Y maximum" id="bound-y-max" step="any" type="number"/></div>
 <div class="vp-bound-row"><b style="color:#4375cb">Z</b><input aria-label="Z minimum" id="bound-z-min" step="any" type="number"/><input aria-label="Z maximum" id="bound-z-max" step="any" type="number"/></div>
 <div aria-live="polite" class="vp-error" id="boundsError"></div></div>
-<div class="viewport-settings"><div class="vp-head"><strong>Number formatting</strong><small>Rounded labels use 1, 2, 2.5, or 5 × 10ⁿ steps. Tiny or very large numbers use scientific notation.</small></div>
+<div class="viewport-settings"><div class="vp-head"><strong>Number formatting</strong></div>
 <div class="setting"><div><label class="fieldlabel" for="decimals">Maximum decimal places</label><select id="decimals"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option selected="" value="4">4</option></select></div>
 <div><label class="fieldlabel" for="sciDigits">Scientific notation decimals</label><select id="sciDigits"><option value="0">0</option><option value="1">1</option><option value="2">2</option><option selected="" value="3">3</option></select></div></div></div>
-<div class="setting"><div style="display:none"><input id="span" type="number" value="6"/></div><div><label class="fieldlabel" for="mesh">Surface quality</label><select id="mesh"><option value="28">Fast</option><option selected="" value="42">Balanced</option><option value="65">Detailed</option></select></div></div><div class="new-settings"><label class="check-setting"><input checked="" id="zeroSlice" type="checkbox"/><span><b>Show 3D graphs in 2D at z = 0</b><small>z = f(x,y): zero-height contour · f(x,y,z): z = 0 heatmap</small></span></label><div class="cloud-setting"><div class="setting-label"><label for="cloudDensity">3D ray samples / pixel</label><output id="cloudDensityLabel">18 ray samples / pixel</output></div><input id="cloudDensity" max="40" min="8" step="2" type="range" value="18"/><div class="density-bound"><span>Faster</span><span>Denser</span></div></div>
+<div class="setting"><div style="display:none"><input id="span" type="number" value="6"/></div><div><label class="fieldlabel" for="mesh">Surface quality</label><select id="mesh"><option value="28">Fast</option><option selected="" value="42">Balanced</option><option value="65">Detailed</option></select></div></div><div class="new-settings viewport-settings"><label class="check-setting"><input checked="" id="zeroSlice" type="checkbox"/><span><b>Show 3D graphs in 2D</b></span></label><div class="cloud-setting"><div class="setting-label"><label for="cloudDensity">3D ray samples / pixel</label><output id="cloudDensityLabel">18 ray samples / pixel</output></div><input id="cloudDensity" max="40" min="8" step="2" type="range" value="18"/></div>
 <div class="opacity-settings" hidden="" id="opacitySettings"><div class="setting-label"><label for="cloudOpacity">Optical density</label><output id="cloudOpacityValue">76%</output></div><input id="cloudOpacity" max="1" min="0.05" step="0.05" type="range" value="0.76"/><div class="setting-label"><label for="cloudThreshold">Ignore values weaker than</label><output id="cloudThresholdValue">0%</output></div><input id="cloudThreshold" max="0.95" min="0" step="0.05" type="range" value="0"/></div>
-<div class="cloud-setting"><div class="setting-label"><label for="vectorLengthScale">Vector arrow scale</label><output id="vectorLengthLabel">1.00×</output></div><input id="vectorLengthScale" max="4" min="0.1" step="0.1" type="range" value="1"/><div class="density-bound"><span>1× gives actual length in Actual mode</span><span>× 4</span></div></div>
+<div class="cloud-setting"><div class="setting-label"><label for="vectorLengthScale">Vector scale</label><output id="vectorLengthLabel">1.00×</output></div><input id="vectorLengthScale" max="4" min="0.1" step="0.1" type="range" value="1"/></div>
 <div class="cloud-setting" style="display:none!important" aria-hidden="true"><div class="setting-label"><label for="frameTime">T̂/N̂/B̂ evaluation: t</label><output id="frameTimeValue">0</output></div><input id="frameTime" max="6.28" min="-6.28" step="0.02" type="range" value="0"/><div class="density-bound"><span>−2π</span><span>+2π</span></div></div>
 </div><div class="viewport-settings" id="vectorFieldControls">
-<div class="vp-head"><strong>Vector fields</strong><small>Control arrow magnitudes independently from sampling positions. All vector fields use these settings, including gradients.</small></div>
-<div class="cloud-setting"><label class="fieldlabel" for="fieldLengthMode">Arrow length</label>
-<select aria-label="Vector-field arrow length" id="fieldLengthMode"><option value="actual">Actual · real vector magnitude</option><option value="relative">Relative · normalized to largest visible arrow</option><option value="constant">Constant · all arrows equal</option></select></div>
-<div class="cloud-setting" id="fieldFixedRow"><div class="setting-label"><label for="fieldFixedFraction">Constant arrow length</label><output id="fieldFixedFractionValue">14% of box</output></div><input id="fieldFixedFraction" max="0.6" min="0.01" step="0.01" type="range" value="0.14"/></div>
-<div class="cloud-setting" id="fieldRelativeRow"><div class="setting-label"><label for="fieldRelativeFraction">Largest arrow length</label><output id="fieldRelativeFractionValue">22% of box</output></div><input id="fieldRelativeFraction" max="0.6" min="0.01" step="0.01" type="range" value="0.22"/></div>
-<div class="cloud-setting"><div class="setting-label"><label for="fieldDensity">Arrow density</label><output id="fieldDensityValue">6 per X/Y/Z axis</output></div><input id="fieldDensity" max="12" min="3" step="1" type="range" value="6"/></div>
-<div class="cloud-setting"><label class="fieldlabel" for="fieldGridMode">Sampling positions</label><select id="fieldGridMode"><option value="box">Box-aligned · fixed count in visible box</option><option value="world">World-aligned · round-number coordinate intervals</option></select></div>
-<small class="subtext">World-aligned mode snaps arrows to coordinates like (1,1) or (1,1.5) as you zoom. XY fields extend through Z unless disabled on the expression row.</small>
+<div class="vp-head"><strong>Vector fields</strong></div>
+<div class="field-mode-grid"><div class="cloud-setting"><label class="fieldlabel" for="fieldLengthMode">Vector length</label><select id="fieldLengthMode"><option value="actual">Actual</option><option value="relative">Relative</option><option value="constant">Constant</option></select></div><div class="cloud-setting"><label class="fieldlabel" for="fieldGridMode">Tail positions</label><select id="fieldGridMode"><option value="box">Box aligned</option><option value="world">Grid aligned</option></select></div></div>
+<div class="cloud-setting" id="fieldFixedRow"><div class="setting-label"><label for="fieldFixedFraction">Constant vector length</label><output id="fieldFixedFractionValue">14% of box</output></div><input id="fieldFixedFraction" max="0.6" min="0.01" step="0.01" type="range" value="0.14"/></div>
+<div class="cloud-setting" id="fieldRelativeRow"><div class="setting-label"><label for="fieldRelativeFraction">Maximum vector length</label><output id="fieldRelativeFractionValue">22% of box</output></div><input id="fieldRelativeFraction" max="0.6" min="0.01" step="0.01" type="range" value="0.22"/></div>
+
+
+
 </div><details class="render-advanced" id="rendererAdvanced"><summary>⚙ Advanced · rendering engines</summary>
-<p class="render-advanced-note">Choose the rasterizer for each graph element. WebGL 2 is used where available; CPU fallback is automatic. Math evaluation stays on the CPU.</p>
-<div class="render-settings-grid"><label class="render-setting"><span>Surfaces</span><select aria-label="Surfaces renderer" id="renderMode-surfaces"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Lines and curves</span><select aria-label="Lines and curves renderer" id="renderMode-lines"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Vectors and vector fields</span><select aria-label="Vectors and vector fields renderer" id="renderMode-vectors"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Points and implicit samples</span><select aria-label="Points and implicit samples renderer" id="renderMode-points"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Cube, axes, grid</span><select aria-label="Cube, axes, grid renderer" id="renderMode-axes"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>3D clouds</span><select aria-label="3D clouds renderer" id="renderMode-volume"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>2D scalar heatmaps</span><select aria-label="2D scalar heatmaps renderer" id="renderMode-heatmap"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label></div><p class="render-advanced-note">The 3D axes labels remain text on the CPU for readability. On unsupported devices GPU preferences automatically fall back to CPU.</p></details><div class="actions" style="margin-top:10px"><button class="btn" id="reset">Reset camera</button><button class="btn ghost" id="clear">Clear expressions</button></div></section></div><div class="info" id="graphHelp"><div class="dimension-head"><div class="toggle dimension-toggle"><button id="mode2" title="2D (D)">2D</button><button class="active" id="mode3" title="3D (D)">3D</button></div><kbd>D</kbd><button class="help-restore" id="expandHelp" type="button" title="Show graph instructions" aria-label="Show graph instructions" hidden>+</button><button id="minimizeHelp" class="help-collapse" type="button" aria-label="Hide graph instructions" aria-expanded="true" title="Minimize instructions">−</button></div><div class="help-head"><strong id="viewlabel">3D Graph</strong></div><p id="viewdesc">Rotate by dragging. Scroll to zoom.<br/>Right-drag to pan. Functions are drawn in 3D space.</p></div><div class="cloud-legend" hidden="" id="cloudlegend"><div class="legend-title" id="legendTitle">f(x,y,z) · value</div><div class="legend-bar"></div><div class="legend-scale"><span id="legendMin">−1</span><span>0</span><span id="legendMax">+1</span></div></div><div class="hud" id="hud">x: —   y: —</div><div class="corner"><button class="btn" id="zoomout">−</button><button class="btn" id="zoomin">+</button></div></main>
+
+<div class="render-settings-grid"><label class="render-setting"><span>Surfaces</span><select aria-label="Surfaces renderer" id="renderMode-surfaces"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Lines and curves</span><select aria-label="Lines and curves renderer" id="renderMode-lines"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Vectors and vector fields</span><select aria-label="Vectors and vector fields renderer" id="renderMode-vectors"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Points and implicit samples</span><select aria-label="Points and implicit samples renderer" id="renderMode-points"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>Cube, axes, grid</span><select aria-label="Cube, axes, grid renderer" id="renderMode-axes"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>3D clouds</span><select aria-label="3D clouds renderer" id="renderMode-volume"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label><label class="render-setting"><span>2D scalar heatmaps</span><select aria-label="2D scalar heatmaps renderer" id="renderMode-heatmap"><option value="gpu">GPU · WebGL 2</option><option value="cpu">CPU · Canvas</option></select></label></div></details><div class="actions" style="margin-top:10px"><button class="btn" id="reset">Reset camera</button><button class="btn ghost" id="clear">Clear expressions</button></div></section></div><div class="info" id="graphHelp"><div class="dimension-head"><div class="toggle dimension-toggle"><button id="mode2" title="2D (D)">2D</button><button class="active" id="mode3" title="3D (D)">3D</button></div><kbd>D</kbd><button class="help-restore" id="expandHelp" type="button" title="Show graph instructions" aria-label="Show graph instructions" hidden>+</button><button id="minimizeHelp" class="help-collapse" type="button" aria-label="Hide graph instructions" aria-expanded="true" title="Minimize instructions">−</button></div><div class="help-head"><strong id="viewlabel">3D Graph</strong></div><p id="viewdesc">Rotate by dragging. Scroll to zoom.<br/>Right-drag to pan. Functions are drawn in 3D space.</p></div><div class="cloud-legend" hidden="" id="cloudlegend"><div class="legend-title" id="legendTitle">f(x,y,z) · value</div><div class="legend-bar"></div><div class="legend-scale"><span id="legendMin">−1</span><span>0</span><span id="legendMax">+1</span></div></div><div class="hud" id="hud">x: —   y: —</div><div class="corner"><button class="btn" id="zoomout">−</button><button class="btn" id="zoomin">+</button></div></main>
 </div>
 <script>
 (()=>{class u0{constructor(e,t,a){this.lexer=void 0,this.start=void 0,this.end=void 0,this.lexer=e,this.start=t,this.end=a}static range(e,t){return t?!e||!e.loc||!t.loc||e.loc.lexer!==t.loc.lexer?null:new u0(e.loc.lexer,e.loc.start,t.loc.end):e&&e.loc}}class m0{constructor(e,t){this.text=void 0,this.loc=void 0,this.noexpand=void 0,this.treatAsRelax=void 0,this.text=e,this.loc=t}range(e,t){return new m0(t,u0.range(this,e))}}class M{constructor(e,t){this.name=void 0,this.position=void 0,this.length=void 0,this.rawMessage=void 0;var a="KaTeX parse error: "+e,n,s,u=t&&t.loc;if(u&&u.start<=u.end){var h=u.lexer.input;n=u.start,s=u.end,n===h.length?a+=" at end of input: ":a+=" at position "+(n+1)+": ";var c=h.slice(n,s).replace(/[^]/g,"$&̲"),p;n>15?p="…"+h.slice(n-15,n):p=h.slice(0,n);var g;s+15<h.length?g=h.slice(s,s+15)+"…":g=h.slice(s),a+=p+c+g}var y=new Error(a);return y.name="ParseError",y.__proto__=M.prototype,y.position=n,n!=null&&s!=null&&(y.length=s-n),y.rawMessage=e,y}}M.prototype.__proto__=Error.prototype;var fa=function(e,t){return e===void 0?t:e},pa=/([A-Z])/g,va=function(e){return e.replace(pa,"-$1").toLowerCase()},ga={"&":"&amp;",">":"&gt;","<":"&lt;",'"':"&quot;","'":"&#x27;"},ba=/[&><"']/g;function ya(r){return String(r).replace(ba,e=>ga[e])}var vr=function r(e){return e.type==="ordgroup"||e.type==="color"?e.body.length===1?r(e.body[0]):e:e.type==="font"?r(e.body):e},xa=function(e){var t=vr(e);return t.type==="mathord"||t.type==="textord"||t.type==="atom"},wa=function(e){if(!e)throw new Error("Expected non-null, but got "+String(e));return e},ka=function(e){var t=/^[\x00-\x20]*([^\\/#?]*?)(:|&#0*58|&#x0*3a|&colon)/i.exec(e);return t?t[2]!==":"||!/^[a-zA-Z][a-zA-Z0-9+\-.]*$/.test(t[1])?null:t[1].toLowerCase():"_relative"},V={deflt:fa,escape:ya,hyphenate:va,getBaseElem:vr,isCharacterBox:xa,protocolFromUrl:ka},ze={displayMode:{type:"boolean",description:"Render math in display mode, which puts the math in display style (so \\int and \\sum are large, for example), and centers the math on the page on its own line.",cli:"-d, --display-mode"},output:{type:{enum:["htmlAndMathml","html","mathml"]},description:"Determines the markup language of the output.",cli:"-F, --format <type>"},leqno:{type:"boolean",description:"Render display math in leqno style (left-justified tags)."},fleqn:{type:"boolean",description:"Render display math flush left."},throwOnError:{type:"boolean",default:!0,cli:"-t, --no-throw-on-error",cliDescription:"Render errors (in the color given by --error-color) instead of throwing a ParseError exception when encountering an error."},errorColor:{type:"string",default:"#cc0000",cli:"-c, --error-color <color>",cliDescription:"A color string given in the format 'rgb' or 'rrggbb' (no #). This option determines the color of errors rendered by the -t option.",cliProcessor:r=>"#"+r},macros:{type:"object",cli:"-m, --macro <def>",cliDescription:"Define custom macro of the form '\\foo:expansion' (use multiple -m arguments for multiple macros).",cliDefault:[],cliProcessor:(r,e)=>(e.push(r),e)},minRuleThickness:{type:"number",description:"Specifies a minimum thickness, in ems, for fraction lines, `\\sqrt` top lines, `{array}` vertical lines, `\\hline`, `\\hdashline`, `\\underline`, `\\overline`, and the borders of `\\fbox`, `\\boxed`, and `\\fcolorbox`.",processor:r=>Math.max(0,r),cli:"--min-rule-thickness <size>",cliProcessor:parseFloat},colorIsTextColor:{type:"boolean",description:"Makes \\color behave like LaTeX's 2-argument \\textcolor, instead of LaTeX's one-argument \\color mode change.",cli:"-b, --color-is-text-color"},strict:{type:[{enum:["warn","ignore","error"]},"boolean","function"],description:"Turn on strict / LaTeX faithfulness mode, which throws an error if the input uses features that are not supported by LaTeX.",cli:"-S, --strict",cliDefault:!1},trust:{type:["boolean","function"],description:"Trust the input, enabling all HTML features such as \\url.",cli:"-T, --trust"},maxSize:{type:"number",default:1/0,description:"If non-zero, all user-specified sizes, e.g. in \\rule{500em}{500em}, will be capped to maxSize ems. Otherwise, elements and spaces can be arbitrarily large",processor:r=>Math.max(0,r),cli:"-s, --max-size <n>",cliProcessor:parseInt},maxExpand:{type:"number",default:1e3,description:"Limit the number of macro expansions to the specified number, to prevent e.g. infinite macro loops. If set to Infinity, the macro expander will try to fully expand as in LaTeX.",processor:r=>Math.max(0,r),cli:"-e, --max-expand <n>",cliProcessor:r=>r==="Infinity"?1/0:parseInt(r)},globalGroup:{type:"boolean",cli:!1}};function Sa(r){if(r.default)return r.default;var e=r.type,t=Array.isArray(e)?e[0]:e;if(typeof t!="string")return t.enum[0];switch(t){case"boolean":return!1;case"string":return"";case"number":return 0;case"object":return{}}}class dt{constructor(e){this.displayMode=void 0,this.output=void 0,this.leqno=void 0,this.fleqn=void 0,this.throwOnError=void 0,this.errorColor=void 0,this.macros=void 0,this.minRuleThickness=void 0,this.colorIsTextColor=void 0,this.strict=void 0,this.trust=void 0,this.maxSize=void 0,this.maxExpand=void 0,this.globalGroup=void 0,e=e||{};for(var t in ze)if(ze.hasOwnProperty(t)){var a=ze[t];this[t]=e[t]!==void 0?a.processor?a.processor(e[t]):e[t]:Sa(a)}}reportNonstrict(e,t,a){var n=this.strict;if(typeof n=="function"&&(n=n(e,t,a)),!(!n||n==="ignore")){if(n===!0||n==="error")throw new M("LaTeX-incompatible input and strict mode is set to 'error': "+(t+" ["+e+"]"),a);n==="warn"?typeof console<"u"&&console.warn("LaTeX-incompatible input and strict mode is set to 'warn': "+(t+" ["+e+"]")):typeof console<"u"&&console.warn("LaTeX-incompatible input and strict mode is set to "+("unrecognized '"+n+"': "+t+" ["+e+"]"))}}useStrictBehavior(e,t,a){var n=this.strict;if(typeof n=="function")try{n=n(e,t,a)}catch{n="error"}return!n||n==="ignore"?!1:n===!0||n==="error"?!0:n==="warn"?(typeof console<"u"&&console.warn("LaTeX-incompatible input and strict mode is set to 'warn': "+(t+" ["+e+"]")),!1):(typeof console<"u"&&console.warn("LaTeX-incompatible input and strict mode is set to "+("unrecognized '"+n+"': "+t+" ["+e+"]")),!1)}isTrusted(e){if(e.url&&!e.protocol){var t=V.protocolFromUrl(e.url);if(t==null)return!1;e.protocol=t}var a=typeof this.trust=="function"?this.trust(e):this.trust;return!!a}}class O0{constructor(e,t,a){this.id=void 0,this.size=void 0,this.cramped=void 0,this.id=e,this.size=t,this.cramped=a}sup(){return y0[Ma[this.id]]}sub(){return y0[za[this.id]]}fracNum(){return y0[Aa[this.id]]}fracDen(){return y0[Ta[this.id]]}cramp(){return y0[Ba[this.id]]}text(){return y0[Da[this.id]]}isTight(){return this.size>=2}}var ft=0,Te=1,ee=2,B0=3,le=4,f0=5,te=6,n0=7,y0=[new O0(ft,0,!1),new O0(Te,0,!0),new O0(ee,1,!1),new O0(B0,1,!0),new O0(le,2,!1),new O0(f0,2,!0),new O0(te,3,!1),new O0(n0,3,!0)],Ma=[le,f0,le,f0,te,n0,te,n0],za=[f0,f0,f0,f0,n0,n0,n0,n0],Aa=[ee,B0,le,f0,te,n0,te,n0],Ta=[B0,B0,f0,f0,n0,n0,n0,n0],Ba=[Te,Te,B0,B0,f0,f0,n0,n0],Da=[ft,Te,ee,B0,ee,B0,ee,B0],R={DISPLAY:y0[ft],TEXT:y0[ee],SCRIPT:y0[le],SCRIPTSCRIPT:y0[te]},nt=[{name:"latin",blocks:[[256,591],[768,879]]},{name:"cyrillic",blocks:[[1024,1279]]},{name:"armenian",blocks:[[1328,1423]]},{name:"brahmic",blocks:[[2304,4255]]},{name:"georgian",blocks:[[4256,4351]]},{name:"cjk",blocks:[[12288,12543],[19968,40879],[65280,65376]]},{name:"hangul",blocks:[[44032,55215]]}];function Ca(r){for(var e=0;e<nt.length;e++)for(var t=nt[e],a=0;a<t.blocks.length;a++){var n=t.blocks[a];if(r>=n[0]&&r<=n[1])return t.name}return null}var Ae=[];nt.forEach(r=>r.blocks.forEach(e=>Ae.push(...e)));function gr(r){for(var e=0;e<Ae.length;e+=2)if(r>=Ae[e]&&r<=Ae[e+1])return!0;return!1}var _0=80,Na=function(e,t){return"M95,"+(622+e+t)+`
@@ -836,7 +846,7 @@ function cardinalTrig(x,kind){const q=Math.round(x/(Math.PI/2));if(Number.isFini
 const FUN={sin:x=>cardinalTrig(x,'sin'),cos:x=>cardinalTrig(x,'cos'),tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan,sinh:Math.sinh,cosh:Math.cosh,tanh:Math.tanh,asinh:Math.asinh,acosh:Math.acosh,atanh:Math.atanh,sqrt:Math.sqrt,abs:Math.abs,exp:Math.exp,ln:Math.log,log:Math.log,log10:Math.log10,floor:Math.floor,ceil:Math.ceil,round:Math.round,sign:Math.sign,atan2:Math.atan2,min:Math.min,max:Math.max,pow:Math.pow,sec:x=>1/Math.cos(x),csc:x=>1/Math.sin(x),cot:x=>1/Math.tan(x),mod:(a,b)=>((a%b)+Math.abs(b))%Math.abs(b),clamp:(v,a,b)=>Math.min(Math.max(v,a),b),hypot:Math.hypot,logb:(x,b)=>Math.log(x)/Math.log(b),root:(x,n)=>Math.sign(x)*Math.pow(Math.abs(x),1/n),factorial:n=>{if(n<0||!Number.isInteger(n)||n>170)return NaN;let r=1;for(let i=2;i<=n;i++)r*=i;return r},sinc:x=>x===0?1:Math.sin(x)/x};
 const c=v=>({k:'n',v}), v=s=>({k:'v',s}), op=(s,a,b)=>({k:'o',s,a,b}), call=(s,...args)=>({k:'f',s,args});
 let scalarDefs=new Map(),scalarVals=Object.create(null),vectorDefs=new Map(),hatVectorDefs=new Map(),pointDefs=new Map(),userFunctions=new Map(),frameTime=0,cloudAppearance='density',cloudOpacity=.76,cloudThreshold=0,vectorLengthScale=1,fieldLengthMode='actual',fieldGridMode='box',fieldDensity=6,fieldFixedFraction=.14,fieldRelativeFraction=.22;
-let constants=[],cubeSize=.285,cameraDistance=9,sidebarWidth=410,sidebarCollapsed=false,settingBindings=Object.create(null),heatOpacity=.72,positiveColor='#e95747',negativeColor='#2874c1',drawnPointHits=[],selectedPointId=null,hoveredPointId=null;
+let constants=[],cubeSize=.285,cameraDistance=9,sidebarWidth=410,sidebarCollapsed=false,settingBindings=Object.create(null),positiveColor='#e95747',negativeColor='#2874c1',drawnPointHits=[],selectedPointId=null,hoveredPointId=null;
 let functionExpansion=[];
 
 // All Greek letters are normal user identifiers (except pi's familiar default value).
@@ -2386,7 +2396,8 @@ function renderRows(focusId=null,constantMode=false){
  const opacityLine=document.createElement('label');opacityLine.textContent='Opacity';
  const opacity=document.createElement('input');opacity.type='range';opacity.min='0';opacity.max='1';opacity.step='.01';opacity.value=entry.opacity??1;
  const opText=document.createElement('span');opText.className='range-value';opText.textContent=Math.round(opacity.value*100)+'%';
- opacity.oninput=()=>{entry.opacity=Number(opacity.value);opText.textContent=Math.round(entry.opacity*100)+'%';schedule();save()};opacityLine.append(opacity,opText);stylePanel.append(opacityLine);
+ opacity.oninput=()=>{entry.opacity=Number(opacity.value);opText.textContent=Math.round(entry.opacity*100)+'%';schedule();save()};opacityLine.className='style-range-line';opacity.setAttribute('aria-label','Opacity');opacityLine.append(opacity,opText);stylePanel.append(opacityLine);
+ const densityLine=document.createElement('label');densityLine.className='style-range-line';densityLine.textContent='Vector density';const density=document.createElement('input');density.type='range';density.min='3';density.max='12';density.step='1';density.value=String(fieldEntryDensity(entry));density.setAttribute('aria-label','Vector density');const densityText=document.createElement('span');densityText.className='range-value';densityText.textContent=density.value;density.oninput=()=>{entry.fieldDensity=Number(density.value);densityText.textContent=density.value;schedule();save()};densityLine.append(density,densityText);stylePanel.append(densityLine);
  const fieldGroup=document.createElement('div');fieldGroup.className='style-divider';fieldGroup.title='Colors for positive and negative field values';stylePanel.append(fieldGroup);
  const negLine=document.createElement('label');negLine.textContent='Negative';const neg=document.createElement('input');neg.type='color';neg.value=entry.negativeColor||negativeColor;
  neg.oninput=()=>{entry.negativeColor=neg.value;schedule();save()};negLine.append(neg);stylePanel.append(negLine);
@@ -2394,7 +2405,7 @@ function renderRows(focusId=null,constantMode=false){
  pos.oninput=()=>{entry.positiveColor=pos.value;schedule();save()};posLine.append(pos);stylePanel.append(posLine);
  const boundaryColorLine=document.createElement('label');boundaryColorLine.textContent='Exclusive boundary color';const boundaryColor=document.createElement('input');boundaryColor.type='color';boundaryColor.value=entry.boundaryColor||'#ffffff';boundaryColor.oninput=()=>{entry.boundaryColor=boundaryColor.value;schedule();save()};boundaryColorLine.append(boundaryColor);stylePanel.append(boundaryColorLine);
  const patternLine=document.createElement('label');patternLine.textContent='3D exclusive pattern';const pattern=document.createElement('select');for(const [value,label] of [['checker','Checker'],['wireframe','Wireframe'],['dotted','Dotted']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;pattern.append(opt)}pattern.value=entry.boundaryPattern||'checker';pattern.onchange=()=>{entry.boundaryPattern=pattern.value;schedule();save()};patternLine.append(pattern);stylePanel.append(patternLine);
- const syncStyle=()=>{let kind='';try{kind=resolvedKind(entry)}catch{};const scalar=kind==='scalar2'||kind==='cloud3';const region=kind==='inequality2'||kind==='inequality3'||!!vgSplitDomain(entry.text).domain;boundaryColorLine.hidden=!region;patternLine.hidden=!(kind==='inequality2'||kind==='inequality3');const fr=frameReference(vectorNotationPlain(entry.text));anchorLine.hidden=!(fr&&kind==='vector3');anchor.checked=entry.anchorOnCurve!==false;fieldGroup.hidden=!scalar;negLine.hidden=!scalar;posLine.hidden=!scalar};
+ const syncStyle=()=>{let kind='';try{kind=resolvedKind(entry)}catch{};const scalar=kind==='scalar2'||kind==='cloud3';densityLine.hidden=!(kind==='field2'||kind==='field3');const region=kind==='inequality2'||kind==='inequality3'||!!vgSplitDomain(entry.text).domain;boundaryColorLine.hidden=!region;patternLine.hidden=!(kind==='inequality2'||kind==='inequality3');const fr=frameReference(vectorNotationPlain(entry.text));anchorLine.hidden=!(fr&&kind==='vector3');anchor.checked=entry.anchorOnCurve!==false;fieldGroup.hidden=!scalar;negLine.hidden=!scalar;posLine.hidden=!scalar};
  stylePanel.addEventListener('click',ev=>ev.stopPropagation());toggle.addEventListener('click',syncStyle);syncStyle();
   let extend=document.createElement('button');extend.type='button';extend.className='extend3d';
   function updateExtend(){let kind;try{kind=resolvedKind(entry)}catch{kind=''}
@@ -2611,17 +2622,17 @@ function setupRenderControls(){
  const advanced=document.getElementById('rendererAdvanced');
  advanced?.addEventListener('toggle',()=>{if(advanced.open)requestAnimationFrame(()=>{$('graphMenu').scrollTop=$('graphMenu').scrollHeight})});
 }
-function projectSnapshot(){return {expressions:expressions.map(({type,updateSlider,styleVisibility,...entry})=>entry),constants:constants.map(({updatePreview,updateSlider,styleVisibility,...entry})=>entry),cubeSize,cameraDistance,sidebarWidth,sidebarCollapsed,settingBindings,positiveColor,negativeColor,heatOpacity,mode,span,quality,cloudDensity,showZeroSlice,cloudAppearance,cloudOpacity,cloudThreshold,frameTime,vectorLengthScale,fieldLengthMode,fieldGridMode,fieldDensity,fieldFixedFraction,fieldRelativeFraction,view:{pan,scale,axisZoom,yaw,pitch},axesOn,axisNumbersOn,gridLinesOn,numberSettings,renderModes}}
+function projectSnapshot(){return {expressions:expressions.map(({type,updateSlider,styleVisibility,...entry})=>entry),constants:constants.map(({updatePreview,updateSlider,styleVisibility,...entry})=>entry),cubeSize,cameraDistance,sidebarWidth,sidebarCollapsed,settingBindings,positiveColor,negativeColor,mode,span,quality,cloudDensity,showZeroSlice,cloudAppearance,cloudOpacity,cloudThreshold,frameTime,vectorLengthScale,fieldLengthMode,fieldGridMode,fieldFixedFraction,fieldRelativeFraction,view:{pan,scale,axisZoom,yaw,pitch},axesOn,axisNumbersOn,gridLinesOn,numberSettings,renderModes}}
 function save(){try{localStorage.setItem('vectorgraph-v1',JSON.stringify(projectSnapshot()))}catch{}}
 function initial(){try{const s=JSON.parse(localStorage.getItem('vectorgraph-v1'));if(s&&Array.isArray(s.expressions)){renderModes=Object.fromEntries(Object.keys(renderCategories).map(k=>[k,s.renderModes?.[k]==='cpu'?'cpu':'gpu']));expressions=s.expressions.map(({type,...entry})=>entry);constants=Array.isArray(s.constants)?s.constants.map(({type,...entry})=>entry):[];
  constants=constants.filter(e=>String(e.text||'').trim());
  nextId=Math.max(1,...expressions.map(e=>e.id+1),...constants.map(e=>e.id+1));
- cubeSize=Math.min(.38,Math.max(.14,Number(s.cubeSize)||.285));cameraDistance=Math.min(60,Math.max(3.2,Number(s.cameraDistance)||9));sidebarWidth=Math.min(900,Math.max(250,Number(s.sidebarWidth)||410));sidebarCollapsed=s.sidebarCollapsed===true;settingBindings=(s.settingBindings&&typeof s.settingBindings==='object')?s.settingBindings:Object.create(null);positiveColor=/^#[0-9a-f]{6}$/i.test(s.positiveColor)?s.positiveColor:'#e95747';negativeColor=/^#[0-9a-f]{6}$/i.test(s.negativeColor)?s.negativeColor:'#2874c1';heatOpacity=Math.min(1,Math.max(.1,Number(s.heatOpacity)||.72));span=Math.min(1e8,Math.max(1e-8,Number(s.span)||6));quality=s.quality||42; axesOn=s.axesOn!==false;axisNumbersOn=s.axisNumbersOn!==false;gridLinesOn=s.gridLinesOn!==false; if(s.view){yaw=Number.isFinite(s.view.yaw)?s.view.yaw:.6;pitch=Number.isFinite(s.view.pitch)?Math.max(-1.55,Math.min(1.55,s.view.pitch)):.58;pan={x:Number(s.view.pan?.x)||0,y:Number(s.view.pan?.y)||0,z:Number(s.view.pan?.z)||0};scale=Math.max(.0001,Number(s.view.scale)||1);for(const a of ['x','y','z'])axisZoom[a]=Math.max(.0001,Number(s.view.axisZoom?.[a])||1)}if(s.numberSettings){numberSettings.decimals=clampInt(s.numberSettings.decimals,0,4,4);numberSettings.scientific=clampInt(s.numberSettings.scientific,0,3,3)}cloudDensity=Math.min(32,Math.max(8,s.cloudDensity||18));showZeroSlice=s.showZeroSlice!==false;cloudAppearance=['opacity','density'].includes(s.cloudAppearance)?'density':'color';vectorLengthScale=Math.max(.1,Math.min(4,Number(s.vectorLengthScale??1)));
+ cubeSize=Math.min(.38,Math.max(.14,Number(s.cubeSize)||.285));cameraDistance=Math.min(60,Math.max(3.2,Number(s.cameraDistance)||9));sidebarWidth=Math.min(900,Math.max(250,Number(s.sidebarWidth)||410));sidebarCollapsed=s.sidebarCollapsed===true;settingBindings=(s.settingBindings&&typeof s.settingBindings==='object')?s.settingBindings:Object.create(null);positiveColor=/^#[0-9a-f]{6}$/i.test(s.positiveColor)?s.positiveColor:'#e95747';negativeColor=/^#[0-9a-f]{6}$/i.test(s.negativeColor)?s.negativeColor:'#2874c1';span=Math.min(1e8,Math.max(1e-8,Number(s.span)||6));quality=s.quality||42; axesOn=s.axesOn!==false;axisNumbersOn=s.axisNumbersOn!==false;gridLinesOn=s.gridLinesOn!==false; if(s.view){yaw=Number.isFinite(s.view.yaw)?s.view.yaw:.6;pitch=Number.isFinite(s.view.pitch)?Math.max(-1.55,Math.min(1.55,s.view.pitch)):.58;pan={x:Number(s.view.pan?.x)||0,y:Number(s.view.pan?.y)||0,z:Number(s.view.pan?.z)||0};scale=Math.max(.0001,Number(s.view.scale)||1);for(const a of ['x','y','z'])axisZoom[a]=Math.max(.0001,Number(s.view.axisZoom?.[a])||1)}if(s.numberSettings){numberSettings.decimals=clampInt(s.numberSettings.decimals,0,4,4);numberSettings.scientific=clampInt(s.numberSettings.scientific,0,3,3)}cloudDensity=Math.min(40,Math.max(8,s.cloudDensity||18));showZeroSlice=s.showZeroSlice!==false;cloudAppearance=['opacity','density'].includes(s.cloudAppearance)?'density':'color';vectorLengthScale=Math.max(.1,Math.min(4,Number(s.vectorLengthScale??1)));
  fieldLengthMode=['actual','relative','constant'].includes(s.fieldLengthMode)?s.fieldLengthMode:'actual';
  fieldGridMode=['box','world'].includes(s.fieldGridMode)?s.fieldGridMode:'box';
- fieldDensity=Math.max(3,Math.min(12,Number(s.fieldDensity??6)));
- fieldFixedFraction=Math.max(.01,Math.min(.8,Number(s.fieldFixedFraction??.14)));
- fieldRelativeFraction=Math.max(.01,Math.min(.8,Number(s.fieldRelativeFraction??.22))); cloudOpacity=Number(s.cloudOpacity??.76);cloudThreshold=Number(s.cloudThreshold??0);frameTime=Number(s.frameTime??0);mode=s.mode==='2d'?'2d':'3d';return}}catch{}expressions=[
+ fieldDensity=fieldEntryDensity({fieldDensity:s.fieldDensity});for(const e of expressions)if(e.fieldDensity==null)e.fieldDensity=fieldDensity;delete settingBindings.fieldDensity;delete settingBindings.heatOpacity;
+ fieldFixedFraction=Math.max(.01,Math.min(.6,Number(s.fieldFixedFraction??.14)));
+ fieldRelativeFraction=Math.max(.01,Math.min(.6,Number(s.fieldRelativeFraction??.22))); cloudOpacity=Number(s.cloudOpacity??.76);cloudThreshold=Number(s.cloudThreshold??0);frameTime=Number(s.frameTime??0);mode=s.mode==='2d'?'2d':'3d';return}}catch{}expressions=[
  {id:nextId++,text:'\\vec{F}(x,y)=\\langle -y,x\\rangle',color:colors[0],show:true},
  {id:nextId++,text:'y=2\\sin(x)',color:colors[3],show:true},
  {id:nextId++,text:'z=\\frac{x^2-y^2}{9}',color:colors[2],show:false},
@@ -2842,10 +2853,62 @@ function draw3Axes(){
  }
  ctx.restore();
 }
-// Rasterize text at the display resolution. Unlike the old final overlay, glyphs
-// have the camera depth of their tick, and foreground geometry can obscure them.
-// Use the same visible glyph masks in both CPU and GPU volume depth passes.
-function vgPaintAxisLabels(plottable){
+// Reuse the existing GPU geometry depth/peeling passes for labels. Canvas is
+// used only to rasterize each distinct glyph string once per display scale.
+// Convert horizontal runs of equal coverage into tiny quads; opaque glyph
+// cores and antialiased edges use the existing stroke shader passes.
+const vgLabelGlyphCache=new Map();
+let vgLabelGlyphScale=0;
+function vgLabelGlyph(label){
+ const r=Math.max(1,dpr);
+ if(vgLabelGlyphScale!==r){vgLabelGlyphScale=r;vgLabelGlyphCache.clear();}
+ const key=label.font+'|'+label.text;
+ let glyph=vgLabelGlyphCache.get(key);
+ if(glyph)return glyph;
+ const tile=document.createElement('canvas'),c=tile.getContext('2d',{willReadFrequently:true});
+ c.font=label.font;
+ const width=Math.ceil(c.measureText(label.text).width+6),height=26;
+ tile.width=Math.ceil(width*r);tile.height=Math.ceil(height*r);
+ c.scale(r,r);c.font=label.font;c.fillStyle='#fff';c.textBaseline='middle';c.textAlign='left';c.fillText(label.text,3,height/2);
+ const rgba=c.getImageData(0,0,tile.width,tile.height).data,w=tile.width,h=tile.height,runs=[];
+ for(let y=0;y<h;y++)for(let x=0;x<w;){
+  const alpha=rgba[4*(y*w+x)+3];let end=x+1;
+  while(end<w&&rgba[4*(y*w+end)+3]===alpha)end++;
+  if(alpha)runs.push([x/r,y/r,end/r,(y+1)/r,alpha/255]);x=end;
+ }
+ glyph={w,h,r,rgba,runs};
+ if(vgLabelGlyphCache.size>=256)vgLabelGlyphCache.delete(vgLabelGlyphCache.keys().next().value);
+ vgLabelGlyphCache.set(key,glyph);return glyph;
+}
+function vgQueueAxisLabelsGPU(needsVolumeMask){
+ for(const l of vgAxisLabels){
+  const glyph=vgLabelGlyph(l),x=l.x-3,y=l.y-13,col=gpuGeometry.rgba(l.color),z=l.depth;
+  for(const [x0,y0,x1,y1,alpha] of glyph.runs){
+   const a=[x+x0,y+y0,z],b=[x+x1,y+y0,z],c=[x+x1,y+y1,z],d=[x+x0,y+y1,z];
+   const color=[col[0],col[1],col[2],alpha];
+   for(const p of [a,b,c,a,c,d])gpuGeometry.vert(p,color,-1,0,-.00005,gpuGeometry.strokeVerts);
+  }
+  // The existing volume depth pass still needs label coverage. Do not
+  // pre-occlude the glyph: its depth test against the scene happens there.
+  if(needsVolumeMask)vgAxisLabelMasks.push({x,y,w:glyph.w,h:glyph.h,r:glyph.r,rgba:glyph.rgba,depth:z,color:hexRgb(l.color)});
+ }
+}
+function vgCanUseGPULabels(plottable){
+ if(!vgAxisLabels.length||renderModes.axes!=='gpu')return false;
+ // In mixed CPU/GPU scenes, the GPU depth buffer cannot see CPU objects.
+ // Preserve the old depth-aware label pass rather than drawing over them.
+ for(const {entry:e,kind} of plottable){
+  let category=null;
+  if(['surface','scalar2','implicit3','inequality3','inequality2'].includes(kind)||(['func2','implicit2'].includes(kind)&&extends3D(e)))category='surfaces';
+  else if(kind==='curve3')category='lines';
+  else if(['vector3','field3','field2'].includes(kind))category='vectors';
+  else if(kind==='point')category='points';
+  if(category&&renderModes[category]!=='gpu')return false;
+ }
+ return gpuGeometry.ready();
+}
+// Original CPU/mixed-renderer fallback, with scene-aware occlusion.
+function vgPaintAxisLabelsCPU(plottable){
  if(!vgAxisLabels.length)return;
  const ratio=Math.min(1,Math.sqrt(200000/(CW*CH))),W=Math.max(1,Math.round(CW*ratio)),H=Math.max(1,Math.round(CH*ratio));
  const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H),false);
@@ -3141,8 +3204,9 @@ function fieldAxisSamples(axis,count,is3=true){
  for(let i=start;i<=finish&&values.length<65;i++)values.push(Number((i*step).toPrecision(14)));
  return values;
 }
-function fieldSamplePositions(is3,field2D,extend3D=true){
- const n=Math.max(3,Math.min(12,Math.round(fieldDensity)));
+function fieldEntryDensity(entry){const n=Number(entry?.fieldDensity??6);return Number.isFinite(n)?Math.max(3,Math.min(12,Math.round(n))):6;}
+function fieldSamplePositions(is3,field2D,extend3D=true,density=6){
+ const n=Math.max(3,Math.min(12,Math.round(density)));
  // In 2D, field density is per world-distance rather than per unscaled bounds.
  // A wide viewport receives proportionally more columns instead of dead margins.
  const xWidth=is3?2*viewHalf('x'):CW/pixelPerUnit2D(),yWidth=is3?2*viewHalf('y'):CH/pixelPerUnit2D();
@@ -3156,7 +3220,7 @@ function fieldSamplePositions(is3,field2D,extend3D=true){
  return points;
 }
 function vectorArrows(entry,is3,field,field2D=false){
- let positions=field?fieldSamplePositions(is3,field2D,extends3D(entry)):[{...entry.origin||{x:0,y:0,z:0},t:frameTime}],raw=[];
+ let positions=field?fieldSamplePositions(is3,field2D,extends3D(entry),fieldEntryDensity(entry)):[{...entry.origin||{x:0,y:0,z:0},t:frameTime}],raw=[];
  for(let pos of positions){try{
   if(!vgAllows(entry,pos))continue;const vec=evalVector(entry.text,pos),mag=Math.hypot(...vec);
   if(Number.isFinite(mag)&&mag>1e-10)raw.push({pos,vec,mag});
@@ -3292,7 +3356,7 @@ function drawCloudSlice2CPU(e){
  for(let idx=0;idx<values.length;idx++){
   const val=values[idx];if(!Number.isFinite(val)||Math.abs(val)<1e-12)continue;
   const rgb=hexRgb(entryFieldColor(e,val)),strength=Math.min(1,Math.abs(val)/maxAbs),o=idx*4;
-  data[o]=rgb[0];data[o+1]=rgb[1];data[o+2]=rgb[2];data[o+3]=Math.round(255*heatOpacity*entryAlpha(e)*strength);
+  data[o]=rgb[0];data[o+1]=rgb[1];data[o+2]=rgb[2];data[o+3]=Math.round(255*entryAlpha(e)*strength);
  }
  c.putImageData(image,0,0);ctx.save();ctx.imageSmoothingEnabled=true;ctx.drawImage(temp,0,0,CW,CH);ctx.restore();return maxAbs;
 }
@@ -3359,7 +3423,7 @@ function drawCloudSlicesGPU(fields){
  gl.viewport(0,0,W,H);gl.useProgram(h.program);gl.bindVertexArray(h.vao);
  const u=h.locations;
  gl.uniform2f(u.uCanvas,W,H);gl.uniform2f(u.uPan,pan.x,pan.y);gl.uniform2f(u.uHalf,viewHalf('x'),viewHalf('y'));
- gl.uniform1f(u.uTime,frameTime);gl.uniform1f(u.uAlpha,heatOpacity);
+ gl.uniform1f(u.uTime,frameTime);gl.uniform1f(u.uAlpha,1);
  gl.uniform3fv(u.uNegative,hexRgb(negativeColor).map(n=>n/255));gl.uniform3fv(u.uPositive,hexRgb(positiveColor).map(n=>n/255));
  for(let i=0;i<actual.length;i++){
  gl.uniform1f(u['uMax'+i],actual[i].max);gl.uniform1f(u['uFieldAlpha'+i],entryAlpha(actual[i].entry));
@@ -4059,9 +4123,12 @@ function draw(){
    else if(kind==='point')withGPU('points',()=>drawPointMarker(e,true));
   }catch(ex){console.debug('Object skipped:',ex.message)}}
   // Geometry is fully resolved before volume compositing; a zero volume adds no pixels.
+  const hasVolume=plottable.some(q=>q.kind==='cloud3');
+  const labelsOnGPU=vgCanUseGPULabels(plottable);
+  if(labelsOnGPU)vgQueueAxisLabelsGPU(hasVolume);
   gpuGeometry.present();
-  if(axesOn||axisNumbersOn)vgPaintAxisLabels(plottable);
-  if(plottable.some(q=>q.kind==='cloud3')){
+  if(!labelsOnGPU&&(axesOn||axisNumbersOn))vgPaintAxisLabelsCPU(plottable);
+  if(hasVolume){
    legendRange=drawVolumeScene(plottable);
    legend=legendRange>1e-12;
   }
@@ -4146,7 +4213,6 @@ function preset(name){
 function updateCloudControls(){$('opacitySettings').hidden=false;$('cloudOpacityValue').textContent=Math.round(cloudOpacity*100)+'%';$('cloudThresholdValue').textContent=Math.round(cloudThreshold*100)+'%';$('frameTimeValue').textContent=Number(frameTime.toPrecision(4))}
 function updateVectorFieldSettings(){
  $('fieldLengthMode').value=fieldLengthMode;$('fieldGridMode').value=fieldGridMode;
- $('fieldDensity').value=fieldDensity;$('fieldDensityValue').textContent=fieldDensity+' per X/Y/Z axis';
  $('fieldFixedFraction').value=fieldFixedFraction;$('fieldFixedFractionValue').textContent=Math.round(fieldFixedFraction*100)+'% of box';
  $('fieldRelativeFraction').value=fieldRelativeFraction;$('fieldRelativeFractionValue').textContent=Math.round(fieldRelativeFraction*100)+'% of box';
  $('fieldFixedRow').hidden=fieldLengthMode!=='constant';$('fieldRelativeRow').hidden=fieldLengthMode!=='relative';
@@ -4205,18 +4271,16 @@ function setupSidebar(){
  apply();
 }
 
-function updateDensityLabel(){$('cloudDensityLabel').textContent=cloudDensity+' CPU / '+(cloudDensity*2)+' GPU ray samples · higher = smoother'}
+function updateDensityLabel(){$('cloudDensityLabel').textContent=cloudDensity+' CPU / '+(cloudDensity*2)+' GPU'}
 $('mode3').onclick=()=>{mode='3d';updateMode()};$('mode2').onclick=()=>{mode='2d';updateMode()};$('add').onclick=$('addBottom').onclick=()=>{addExpr('');let latest=expressions.at(-1);renderRows(latest.id)};$('reset').onclick=$('home').onclick=reset;
  $('addConstants').onclick=addConstantRow;
  $('graphSettings').onclick=()=>{const panel=$('graphMenu');panel.hidden=!panel.hidden;$('graphSettings').setAttribute('aria-expanded',String(!panel.hidden))};
  $('closeGraphSettings').onclick=()=>{$('graphMenu').hidden=true;$('graphSettings').setAttribute('aria-expanded','false')};
  $('cameraDistance').oninput=()=>{cameraDistance=Number($('cameraDistance').value);$('cameraDistanceValue').textContent=formatNumber(cameraDistance)+'× cube radius';schedule();save()};
  $('cubeSize').oninput=()=>{cubeSize=Number($('cubeSize').value);$('cubeSizeValue').textContent=Math.round(cubeSize*200)+'%';schedule();save()};
- $('heatOpacity').oninput=()=>{heatOpacity=Number($('heatOpacity').value);$('heatOpacityValue').textContent=Math.round(heatOpacity*100)+'%';schedule();save()};
  
  $('clear').onclick=()=>{expressions=[];rebuildDefinitions();renderRows();schedule();save()};$('axes').onclick=()=>{axesOn=!axesOn;updateGraphVisibility();schedule();save()};$('axisNumbers').onclick=()=>{axisNumbersOn=!axisNumbersOn;updateGraphVisibility();schedule();save()};$('gridLines').onclick=()=>{gridLinesOn=!gridLinesOn;updateGraphVisibility();schedule();save()};$('preset').onchange=()=>{preset($('preset').value);$('preset').value=''};$('mesh').onchange=()=>{quality=+$('mesh').value;schedule();save()};$('zeroSlice').onchange=()=>{showZeroSlice=$('zeroSlice').checked;schedule();save()};$('cloudDensity').oninput=()=>{cloudDensity=+$('cloudDensity').value;updateDensityLabel();schedule();save()};$('cloudOpacity').oninput=()=>{cloudOpacity=Number($('cloudOpacity').value);updateCloudControls();schedule();save()};$('cloudThreshold').oninput=()=>{cloudThreshold=Number($('cloudThreshold').value);updateCloudControls();schedule();save()};$('fieldLengthMode').onchange=()=>{fieldLengthMode=$('fieldLengthMode').value;updateVectorFieldSettings();schedule();save()};
  $('fieldGridMode').onchange=()=>{fieldGridMode=$('fieldGridMode').value;schedule();save()};
- $('fieldDensity').oninput=()=>{fieldDensity=Number($('fieldDensity').value);updateVectorFieldSettings();schedule();save()};
  $('fieldFixedFraction').oninput=()=>{fieldFixedFraction=Number($('fieldFixedFraction').value);updateVectorFieldSettings();schedule();save()};
  $('fieldRelativeFraction').oninput=()=>{fieldRelativeFraction=Number($('fieldRelativeFraction').value);updateVectorFieldSettings();schedule();save()};
  $('vectorLengthScale').oninput=()=>{vectorLengthScale=Number($('vectorLengthScale').value);$('vectorLengthLabel').textContent=vectorLengthScale.toFixed(2)+'×';schedule();save()};$('frameTime').oninput=()=>{frameTime=Number($('frameTime').value);updateCloudControls();schedule();save()};$('op').onchange=updateCalcFields;$('compute').onclick=compute;$('plotresult').onclick=plotCalc;$('zoomin').onclick=()=>{scale=Math.min(1e8,scale*1.25);schedule();save()};$('zoomout').onclick=()=>{scale=Math.max(1e-8,scale/1.25);schedule();save()};
@@ -4376,7 +4440,7 @@ $('resetBounds').onclick=()=>{pan={x:0,y:0,z:0};scale=1;axisZoom.x=axisZoom.y=ax
 $('decimals').value=numberSettings.decimals;$('sciDigits').value=numberSettings.scientific;
 $('decimals').onchange=()=>{numberSettings.decimals=clampInt($('decimals').value,0,4,4);schedule();renderRows();save()};
 $('sciDigits').onchange=()=>{numberSettings.scientific=clampInt($('sciDigits').value,0,3,3);schedule();renderRows();save()};
-updateVectorFieldSettings();$('cameraDistance').value=cameraDistance;$('cameraDistanceValue').textContent=formatNumber(cameraDistance)+'× cube radius';$('span').value=span;$('mesh').value=quality;$('zeroSlice').checked=showZeroSlice;$('cloudDensity').value=cloudDensity;$('cloudOpacity').value=cloudOpacity;$('cloudThreshold').value=cloudThreshold;$('frameTime').value=frameTime;$('vectorLengthScale').value=vectorLengthScale;$('vectorLengthLabel').textContent=vectorLengthScale.toFixed(2)+'×';updateCloudControls();updateDensityLabel();$('cubeSize').value=cubeSize;$('cubeSizeValue').textContent=Math.round(cubeSize*200)+'%';$('heatOpacity').value=heatOpacity;$('heatOpacityValue').textContent=Math.round(heatOpacity*100)+'%';renderRows();renderConstants();updateMode();updateCalcFields();initializeSettingEditors();setupSidebar();resize();
+updateVectorFieldSettings();$('cameraDistance').value=cameraDistance;$('cameraDistanceValue').textContent=formatNumber(cameraDistance)+'× cube radius';$('span').value=span;$('mesh').value=quality;$('zeroSlice').checked=showZeroSlice;$('cloudDensity').value=cloudDensity;$('cloudOpacity').value=cloudOpacity;$('cloudThreshold').value=cloudThreshold;$('frameTime').value=frameTime;$('vectorLengthScale').value=vectorLengthScale;$('vectorLengthLabel').textContent=vectorLengthScale.toFixed(2)+'×';updateCloudControls();updateDensityLabel();$('cubeSize').value=cubeSize;$('cubeSizeValue').textContent=Math.round(cubeSize*200)+'%';renderRows();renderConstants();updateMode();updateCalcFields();initializeSettingEditors();setupSidebar();resize();
 </script>
 <script id="v14-theme">(()=>{
  const button=document.getElementById('themeToggle');
