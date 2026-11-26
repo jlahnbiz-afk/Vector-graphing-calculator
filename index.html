@@ -1199,7 +1199,7 @@ function vgTotalReal(a){
  return a.k==='f'&&['sin','cos','abs','sign','floor','ceil','round','atan'].includes(a.s)&&a.args.length===1&&vgTotalReal(a.args[0]);
 }
 function simplify(a){if(a.k==='o'){let A=simplify(a.a),B=simplify(a.b),s=a.s;if(A.k==='n'&&B.k==='n'){let val=evaluate(op(s,A,B),{});if(Number.isFinite(val)&&!(s==='^'&&A.v===0&&B.v===0))return c(val)}const z=x=>x.k==='n'&&x.v===0,one=x=>x.k==='n'&&x.v===1;if(s==='+'&&z(A))return B;if(s==='+'&&z(B))return A;if(s==='-'&&z(B))return A;if(s==='-'&&z(A))return simplify(op('*',c(-1),B));if(s==='*'&&((z(A)&&vgTotalReal(B))||(z(B)&&vgTotalReal(A))))return c(0);if(s==='*'&&one(A))return B;if(s==='*'&&one(B))return A;if(s==='/'&&one(B))return A;if(s==='^'&&one(B))return A;if(s==='^'&&z(B)&&vgTotalReal(A))return c(1);if(s==='^'&&one(A)&&vgTotalReal(B))return c(1);return op(s,A,B)}if(a.k==='f')return call(a.s,...a.args.map(simplify));return a}
-function derive(a,w){if(a.k==='n')return c(0);if(a.k==='v')return c(a.s===w?1:0);if(a.k==='o'){let {s,a:A,b:B}=a,D=derive(A,w),E=derive(B,w);if(s==='+'||s==='-')return simplify(op(s,D,E));if(s==='*')return simplify(op('+',op('*',D,B),op('*',A,E)));if(s==='/')return simplify(op('/',op('-',op('*',D,B),op('*',A,E)),op('^',B,c(2))));if(s==='^'){if(B.k==='n')return simplify(op('*',op('*',B,op('^',A,c(B.v-1))),D));return simplify(op('*',op('^',A,B),op('+',op('*',E,call('ln',A)),op('*',B,op('/',D,A)))))} }if(a.k==='f'){let A=a.args[0],D=derive(A,w),fn=a.s;
+function derive(a,w){if(a.k==='n')return c(0);if(a.k==='v')return c(a.s===w?1:0);if(a.k==='o'){let {s,a:A,b:B}=a,D=derive(A,w),E=derive(B,w);if(s==='+'||s==='-')return simplify(op(s,D,E));if(s==='*')return simplify(op('+',op('*',D,B),op('*',A,E)));if(s==='/')return simplify(op('/',op('-',op('*',D,B),op('*',A,E)),op('^',B,c(2))));if(s==='^'){if(B.k==='n'){if(B.v===0&&vgTotalReal(A))return c(0);if(B.v===1)return D;return simplify(op('*',op('*',B,op('^',A,c(B.v-1))),D));}return simplify(op('*',op('^',A,B),op('+',op('*',E,call('ln',A)),op('*',B,op('/',D,A)))))} }if(a.k==='f'){let A=a.args[0],D=derive(A,w),fn=a.s;
  if(fn==='root'){
   const degree=a.args[1];if(!degree)throw Error('root expects two arguments');
   if(degree.k==='n'&&Number.isFinite(degree.v)&&degree.v!==0){
@@ -1674,7 +1674,7 @@ function splitComponents(s){
  let result=[],start=0,depth=0;for(let i=0;i<str.length;i++){let ch=str[i];if('({[⟨'.includes(ch))depth++;if(')}]⟩'.includes(ch))depth--;if(ch===','&&depth===0){result.push(str.slice(start,i).trim());start=i+1}}result.push(str.slice(start).trim());
  if(result.length===1&&str.startsWith('(')&&str.endsWith(')')){let inner=str.slice(1,-1);if(inner.includes(','))return splitComponents(inner)}return result;
 }
-function compiled(s,kind=''){let source=unwrapEquation(latexPlain(vgSplitDomain(s).base),kind);let key=kind+'\n'+source;if(!plotCache.has(key))plotCache.set(key,parse(source));return plotCache.get(key)}
+function compiled(s,kind=''){let source=unwrapEquation(latexPlain(vgSplitDomain(s).base),kind);let key=kind+'\n'+source;if(!plotCache.has(key)){if(plotCache.size>=1024)plotCache.clear();plotCache.set(key,parse(source));}return plotCache.get(key)}
 function latexForDisplay(s){
  let raw=String(s||'').trim();if(!raw)return '';
  if(raw.includes('\\'))return raw;
@@ -3059,17 +3059,18 @@ function extruded2DPolygons(entry,kind){
    if(prev&&now)push(prev,now);prev=now;
   }
  }else{
-  const ast=checkVariables(compiled(entry.text,'implicit2')),n=Math.max(48,Math.min(95,quality*2)),dx=(X[1]-X[0])/n,dy=(Y[1]-Y[0])/n;
-  const values=Array.from({length:n+1},(_,j)=>Array.from({length:n+1},(_,i)=>
-   bounded(ast,{x:X[0]+i*dx,y:Y[0]+j*dy,z:0,t:frameTime},1e30)));
+  const ast=checkVariables(compiled(entry.text,'implicit2')),n=Math.max(48,Math.min(130,quality*2)),dx=(X[1]-X[0])/n,dy=(Y[1]-Y[0])/n;
+  const contour=vgContourSampler(ast,p=>vgCoords(p[0],p[1],0,frameTime));
+  const values=Array.from({length:n+1},(_,j)=>Array.from({length:n+1},(_,i)=>contour.sample([X[0]+i*dx,Y[0]+j*dy])));
   for(let j=0;j<n;j++)for(let i=0;i<n;i++){
    const fs=[values[j][i],values[j][i+1],values[j+1][i+1],values[j+1][i]],pts=[[X[0]+i*dx,Y[0]+j*dy],[X[0]+(i+1)*dx,Y[0]+j*dy],[X[0]+(i+1)*dx,Y[0]+(j+1)*dy],[X[0]+i*dx,Y[0]+(j+1)*dy]];
-   if(fs.some(v=>!Number.isFinite(v)))continue;
+   if(fs.some(v=>!Number.isFinite(v))||fs.every(v=>v===0)||Math.min(...fs)>0||Math.max(...fs)<0)continue;
    const edges=[[0,1],[1,2],[2,3],[3,0]],hits=[];
-   for(const [u,v] of edges)if((fs[u]<=0&&fs[v]>=0)||(fs[v]<=0&&fs[u]>=0)){
-    let den=fs[u]-fs[v],t=Math.abs(den)<1e-15?.5:fs[u]/den;
-    if(t>=0&&t<=1)hits.push([pts[u][0]+(pts[v][0]-pts[u][0])*t,pts[u][1]+(pts[v][1]-pts[u][1])*t]);
+   for(const [u,v] of edges){
+    const p=contour.root(pts[u],pts[v],fs[u],fs[v]);
+    if(p&&!hits.some(h=>Math.hypot(h[0]-p[0],h[1]-p[1])<Math.min(dx,dy)*1e-7))hits.push(p);
    }
+   if(hits.length===4){const mid=contour.sample([X[0]+(i+.5)*dx,Y[0]+(j+.5)*dy]);if(Number.isFinite(mid)&&(mid<0)===(fs[0]<0))hits.push(hits.shift());}
    for(let h=0;h+1<hits.length;h+=2)push(hits[h],hits[h+1]);
   }
  }
