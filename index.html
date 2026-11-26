@@ -1438,8 +1438,33 @@ function rewriteScalarNotation(raw){
  return s;
 }
 
+// Named unary functions have invisible TeX argument braces in Easy Math.
+// Old editor input may contain \sin{(t),\cos{(t),t}} instead of
+// \sin(t),\cos(t),t. Only split a unary wrapper at an outer comma;
+// do not flatten radicals, fractions, or multi-argument functions.
+function vgRepairUnaryVectorGroups(source){
+ const pattern=/\\(?:sin|cos|tan|sec|csc|cot|sinh|cosh|tanh|arcsin|arccos|arctan|ln|log|exp|abs|sinc|operatorname\s*\{(?:asinh|acosh|atanh)\})\s*\{/g;
+ let out='',start=0,m;
+ while((m=pattern.exec(source))){
+  const open=pattern.lastIndex-1;let group;
+  try{group=readGroup(source,open)}catch{continue}
+  const body=vgRepairUnaryVectorGroups(group.value);
+  // A comma inside a matched parenthesis, fraction, or nested vector is not
+  // a component separator. A top-level comma in a unary argument is.
+  let depth=0,comma=-1;
+  for(let i=0;i<body.length;i++){
+   const ch=body[i];if('([{⟨'.includes(ch))depth++;else if(')]}⟩'.includes(ch))depth--;
+   if(ch===','&&depth===0){comma=i;break}
+  }
+  const command=m[0].slice(0,-1);
+  const arg=comma<0?body:body.slice(0,comma);
+  out+=source.slice(start,m.index)+command+'{'+arg+'}'+(comma<0?'':body.slice(comma));
+  start=group.end;pattern.lastIndex=start;
+ }
+ return out+source.slice(start);
+}
 function vectorNotationPlain(source){
- let s=canonicalGreek(rewriteFrameNotation(String(source||''))).trim().replace(/[−\u2212]/g,'-');
+ let s=canonicalGreek(rewriteFrameNotation(vgRepairUnaryVectorGroups(String(source||'')))).trim().replace(/[−\u2212]/g,'-');
  s=s.replace(/\\(?:left|right)(?![a-zA-Z])/g,'').replace(/\\times(?![A-Za-z])|×/g,' CROSS ').replace(/\\cdot(?![A-Za-z])|[·⋅]/g,' DOT ');
  // Aliases \\i, \\j, \\k, as well as canonical \\imath and \\jmath.
  s=s.replace(/\\(?:imath|jmath)(?![A-Za-z])/g,m=>m==='\\imath'?'i':'j');
@@ -2240,9 +2265,28 @@ function easyMathStructuralKey(input,key){
  }
  return false;
 }
+// Move out of invisible unary-function braces when a completed argument
+// is followed by a vector comma or an explicitly typed closing parenthesis.
+function vgUnaryGroupAtClose(text,close){
+ if(text[close]!=='}')return null;
+ const pairs=easyMathPairs(text),open=pairs.get(close);
+ if(open===undefined||!(/\\(?:sin|cos|tan|sec|csc|cot|sinh|cosh|tanh|arcsin|arccos|arctan|ln|log|exp|abs|sinc|operatorname\s*\{(?:asinh|acosh|atanh)\})\s*$/.test(text.slice(0,open))))return null;
+ if(!text.slice(open+1,close).trim())return null;
+ return {open,close,pairs};
+}
+function vgUnaryClosePosition(text,at){
+ if(text[at]!==')')return at+1;
+ const group=vgUnaryGroupAtClose(text,at+1);
+ if(!group)return at+1;
+ const paren=group.pairs.get(at);
+ return paren!==undefined&&text.slice(group.open+1,paren).trim()===''?group.close+1:at+1;
+}
 function mathEditorShortcut(input,event){
  if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return false;
  const a=input.selectionStart??input.value.length,b=input.selectionEnd??a;
+ if(event.key===','&&a===b&&vgUnaryGroupAtClose(input.value,a)){
+  event.preventDefault();mathEditorReplace(input,a+1,a+1,',',1);return true;
+ }
  if(event.key==='>'&&a===b&&a>0&&input.value[a-1]==='-'&&/\\lim_\{[^}]*$/.test(input.value.slice(0,a))){event.preventDefault();mathEditorReplace(input,a-1,a,'\\to ',4);return true;}
  if(event.key==='>'&&a===b&&a>0&&input.value[a-1]==='<'){
   event.preventDefault();const left='\\left\\langle ',right='\\right\\rangle ';mathEditorReplace(input,a-1,a,left+right,left.length);return true;
@@ -2262,7 +2306,7 @@ function mathEditorShortcut(input,event){
  }
  if((event.key===')'||event.key===']')&&a===b&&[')',']'].includes(input.value[a])&&input.value[a]!==event.key&&/\\forall|\\in\b|∀|∈/.test(input.value.slice(0,a))){event.preventDefault();mathEditorReplace(input,a,a+1,event.key,1);return true;}
  if((event.key===')'||event.key===']'||event.key==='}')&&a===b&&input.value[a]===event.key){
-  event.preventDefault();input.setSelectionRange(a+1,a+1);input.dispatchEvent(new Event('mathcursor'));return true;
+  event.preventDefault();const end=event.key===')'?vgUnaryClosePosition(input.value,a):a+1;input.setSelectionRange(end,end);input.dispatchEvent(new Event('mathcursor'));return true;
  }
  if(event.key==='/'){
   event.preventDefault();
@@ -2577,7 +2621,7 @@ function renderRows(focusId=null,constantMode=false){
    if((ev.ctrlKey||ev.metaKey)&&['z','y'].includes(ev.key.toLowerCase())){ev.preventDefault();easyCommandOpen=false;updateCommandMenu();vgUndo(input,ev.key.toLowerCase()==='y'||ev.shiftKey);refresh();return;}
    return vgEditTransaction(input,()=>{
    if(ev.isComposing)return;
-   if(input._vgGhost){const g=input._vgGhost,a=input.selectionStart;if(a===g.start&&[')',']','}','>','|','ArrowRight','Tab'].includes(ev.key)){const close=input.value.slice(g.start,g.end).trim();if(ev.key==='ArrowRight'||ev.key==='Tab'||close===ev.key||ev.key==='>'&&close==='\\right\\rangle'||ev.key==='|'&&close==='\\right|'||ev.key==='}'&&(close==='\\}'||close==='\\right\\}')){ev.preventDefault();input._vgGhost=null;input.setSelectionRange(g.end,g.end);refresh();return;}}if(a>g.end)input._vgGhost=null;}
+   if(input._vgGhost){const g=input._vgGhost,a=input.selectionStart;if(a===g.start&&[')',']','}','>','|','ArrowRight','Tab'].includes(ev.key)){const close=input.value.slice(g.start,g.end).trim();if(ev.key==='ArrowRight'||ev.key==='Tab'||close===ev.key||ev.key==='>'&&close==='\\right\\rangle'||ev.key==='|'&&close==='\\right|'||ev.key==='}'&&(close==='\\}'||close==='\\right\\}')){ev.preventDefault();input._vgGhost=null;const end=ev.key===')'&&close===')'?vgUnaryClosePosition(input.value,g.start):g.end;input.setSelectionRange(end,end);refresh();return;}}if(a>g.end)input._vgGhost=null;}
 
    if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==='a'){ev.preventDefault();selectTo(0,input.value.length);return;}
    if((ev.ctrlKey||ev.metaKey)&&['c','x'].includes(ev.key.toLowerCase())&&input.selectionStart!==input.selectionEnd){
