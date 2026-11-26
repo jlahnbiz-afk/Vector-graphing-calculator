@@ -109,7 +109,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 -->
 
 <meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>VectorGraph v1.0.2</title>
+<title>VectorGraph v1.0.3</title>
 <style>
 :root{color-scheme:dark;--bg:#0c1019;--panel:#151a27;--panel2:#1b2232;--line:#2c3548;--text:#edf2fb;--muted:#99a8bf;--accent:#7d9dff;--good:#6de0bd;--bad:#ff849e}
 *{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text)}button,input,select{font:inherit}button,select{cursor:pointer}button{color:var(--text)}button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -488,19 +488,26 @@ body.dark-ui .graph-settings-menu .new-settings .opacity-settings{background:tra
 .graph-settings-menu .slider-pair{margin:0;gap:8px}.graph-settings-menu .slider-pair .slider-text{flex:0 0 72px;width:72px;min-width:0}
 .expression-style .style-range-line{display:grid;grid-template-columns:92px minmax(0,1fr) 37px;gap:6px;align-items:center}.expression-style .style-range-line input[type=range]{display:block;width:100%;min-width:0}.expression-style .range-value{min-width:0}
 @media(max-width:430px){.expression-style .style-range-line{grid-template-columns:76px minmax(0,1fr) 31px;gap:4px}}
+</style><style id="v103-controls">
+.vg-section-actions{display:flex;align-items:center;gap:6px}.vg-section-actions .vg-clear{height:28px;padding:0 8px;font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center}.vg-clear:hover{color:var(--bad)}
+#addConstants,#add,#addBottom{font-size:0!important;position:relative;display:inline-flex!important;align-items:center;justify-content:center;padding:0!important;background:var(--panel2)!important;color:var(--text)!important;border:1px solid var(--line)!important}
+#addConstants:hover,#add:hover,#addBottom:hover{border-color:var(--accent)!important}#addConstants::before,#add::before,#addBottom::before,#addConstants::after,#add::after,#addBottom::after{content:'';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:currentColor;border-radius:1px}#addConstants::before,#add::before,#addBottom::before{width:12px;height:2px}#addConstants::after,#add::after,#addBottom::after{width:2px;height:12px}#addBottom{display:flex!important}
+html:has(body.dark-ui){color-scheme:dark}html:has(body.theme-light){color-scheme:light}
+body.dark-ui select,body.dark-ui .graph-settings-menu select,body.dark-ui .expression-style select{color-scheme:dark;background:#101a2b!important;color:#edf2fb!important;border-color:#40516a!important}body.dark-ui select option{background:#101a2b!important;color:#edf2fb!important}body.theme-light select,body.theme-light select option{color-scheme:light;background:#fff;color:#24354c}select option:hover,select option:focus,select option:checked{background:#347bc7!important;color:#fff!important}
+.expression-style .vg-visibility-row{display:flex;align-items:center;gap:18px}.expression-style .vg-visibility-row label{flex:none}.expression-style .vg-size input[type=number]{width:62px;flex:none;text-align:right;padding:4px 6px}
 </style></head>
 <body class="dark-ui">
 <div class="app">
 <aside class="sidebar" id="sidebar">
 <div class="head">
-<div class="brand"><div class="row" style="gap:9px"><div class="mark">∇</div><div><h1>VectorGraph <span class="chip">v1.0.2 · OFFLINE</span></h1></div></div><div class="brand-actions"><button class="btn ghost" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="true" title="Switch light and dark interface">☾ Dark</button><button type="button" class="sidebar-button" id="collapseSidebar" aria-label="Collapse sidebar" title="Collapse sidebar (M)">☰ <kbd>M</kbd></button></div></div>
+<div class="brand"><div class="row" style="gap:9px"><div><h1>VectorGraph <span class="chip">v1.0.3 · OFFLINE</span></h1></div></div><div class="brand-actions"><button class="btn ghost" id="themeToggle" type="button" aria-label="Toggle dark mode" aria-pressed="true" title="Switch light and dark interface">☾ Dark</button><button type="button" class="sidebar-button" id="collapseSidebar" aria-label="Collapse sidebar" title="Collapse sidebar (M)">☰ <kbd>M</kbd></button></div></div>
 
 </div>
 <div class="scroll">
-<section class="section constants-section"><div class="sectiontitle"><h2>Constants</h2><button class="btn ghost" id="addConstants" type="button" aria-label="Add constant" title="Add constant">+</button></div>
+<section class="section constants-section"><div class="sectiontitle"><h2>Constants</h2><div class="vg-section-actions"><button class="btn ghost vg-clear" id="clearConstants" type="button" title="Clear constants">Clear</button><button class="btn ghost" id="addConstants" type="button" aria-label="Add constant" title="Add constant">+</button></div></div>
 <div aria-label="Compact constant expressions" id="constants"></div></section>
 <section class="section expression-section">
-<div class="sectiontitle"><h2>Expressions</h2><button class="btn primary" id="add" type="button" aria-label="Add expression" title="Add expression">+</button></div>
+<div class="sectiontitle"><h2>Expressions</h2><div class="vg-section-actions"><button class="btn ghost vg-clear" id="clearExpressions" type="button" title="Clear expressions">Clear</button><button class="btn ghost" id="add" type="button" aria-label="Add expression" title="Add expression">+</button></div></div>
 <div aria-label="Graph expressions" id="expressions"></div>
 <button class="btn add-row-bottom" id="addBottom" type="button" aria-label="Add expression" title="Add expression">+</button>
 <div class="mathkeys-wrap"><div aria-label="LaTeX symbol toolbar" class="mathkeys" id="mathkeys"></div></div>
@@ -2307,6 +2314,21 @@ function enterExpressionEdit(box,input){
  box.classList.add('editing');activeEditor=input;
  if(box.dataset.editorMode==='latex')input.focus();else (box.querySelector('.math-live')||input).focus();
 }
+const vgRemovedRows=[];
+function vgDeleteRows(constantMode,ids){
+ const list=constantMode?constants:expressions,removed=list.map((entry,index)=>({entry,index})).filter(q=>ids.has(q.entry.id));if(!removed.length)return;
+ const clean=entry=>JSON.parse(JSON.stringify(entry,(k,v)=>typeof v==='function'||k==='styleVisibility'||k==='styleLabel'?undefined:v));
+ vgRemovedRows.push({constantMode,removed:removed.map(q=>({entry:clean(q.entry),index:q.index}))});if(vgRemovedRows.length>100)vgRemovedRows.shift();
+ if(activeEditor?.closest('.expr')&&ids.has(Number(activeEditor.closest('.expr').dataset.id)))activeEditor=null;
+ if(constantMode)constants=list.filter(e=>!ids.has(e.id));else expressions=list.filter(e=>!ids.has(e.id));
+ if(ids.has(hoveredPointId))hoveredPointId=null;vgRefreshRemovedRows();
+}
+function vgRefreshRemovedRows(){activeEditor=null;rebuildDefinitions();renderRows();renderConstants();refreshValueRows();refreshConstants();schedule();save()}
+function vgUndoRows(){
+ const action=vgRemovedRows.pop();if(!action)return false;const list=action.constantMode?constants:expressions;
+ for(const q of action.removed){if(![...constants,...expressions].some(e=>e.id===q.entry.id))list.splice(Math.min(q.index,list.length),0,q.entry);nextId=Math.max(nextId,q.entry.id+1)}
+ vgRefreshRemovedRows();return true;
+}
 function addConstantRow(){
  const entry={id:nextId++,text:'',color:colors[(nextId-2)%colors.length],show:true};constants.push(entry);renderConstants(entry.id);save();
 }
@@ -2382,16 +2404,19 @@ function renderRows(focusId=null,constantMode=false){
   updateModes();
 
   let actions=document.createElement('div');actions.className='row-actions';
-  let del=document.createElement('button');del.className='iconbtn';del.textContent='×';del.title='Delete expression';del.setAttribute('aria-label',del.title);
-  del.onclick=()=>{if(activeEditor===input)activeEditor=null;if(constantMode){constants=constants.filter(e=>e.id!==entry.id);rebuildDefinitions();renderConstants();refreshValueRows();}else{expressions=expressions.filter(e=>e.id!==entry.id);rebuildDefinitions();renderRows();refreshConstants();}schedule();save()};
+  let del=document.createElement('button');del.className='iconbtn';del.textContent='×';del.title=constantMode?'Delete constant':'Delete expression';del.setAttribute('aria-label',del.title);
+  del.onclick=()=>vgDeleteRows(constantMode,new Set([entry.id]));
   const stylePanel=document.createElement('div');stylePanel.className='expression-style';stylePanel.hidden=true;
  const title=document.createElement('div');title.className='style-heading';title.textContent='Expression appearance';
  const close=document.createElement('button');close.type='button';close.className='style-close';close.textContent='×';close.title='Close style settings';close.onclick=()=>{stylePanel.hidden=true;box.classList.remove('style-open')};title.append(close);stylePanel.append(title);
- const visibleLine=document.createElement('label');visibleLine.textContent='Show expression';
+ const visibleLine=document.createElement('label');visibleLine.textContent='Show';
  const visible=document.createElement('input');visible.type='checkbox';visible.checked=entry.show;visible.onchange=()=>setRowVisible(visible.checked);entry.styleVisibility=visible;
- visibleLine.className='visibility-line';visibleLine.prepend(visible);stylePanel.append(visibleLine);
+ visibleLine.className='visibility-line';visibleLine.prepend(visible);
+ const visibilityRow=document.createElement('div');visibilityRow.className='vg-visibility-row';visibilityRow.append(visibleLine);
+ const labelLine=document.createElement('label');labelLine.className='visibility-line';const labelCheck=document.createElement('input');labelCheck.type='checkbox';labelCheck.checked=entry.labelVisible===true;labelLine.append(labelCheck,document.createTextNode('Label'));labelCheck.onchange=()=>{entry.labelVisible=labelCheck.checked;schedule();save()};entry.styleLabel=labelCheck;visibilityRow.append(labelLine);stylePanel.append(visibilityRow);
+ const sizeLine=document.createElement('label');sizeLine.className='vg-size';sizeLine.textContent='Line weight';const sizeInput=document.createElement('input');sizeInput.type='number';sizeInput.min='.5';sizeInput.max='24';sizeInput.step='.5';sizeInput.onchange=()=>{const kind=resolvedKind(entry);if(kind==='point')entry.pointSize=vgClampSize(sizeInput.value,13,2,48);else entry.lineWeight=vgClampSize(sizeInput.value,vgDefaultWeight(kind),.5,24);syncStyle();schedule();save()};sizeLine.append(sizeInput);stylePanel.append(sizeLine);
  const anchorLine=document.createElement('label');anchorLine.className='visibility-line';const anchor=document.createElement('input');anchor.type='checkbox';anchor.checked=entry.anchorOnCurve!==false;anchorLine.append(anchor,document.createTextNode('Show on curve'));anchor.title='Uncheck to place the vector tail at O';anchor.onchange=()=>{entry.anchorOnCurve=anchor.checked;schedule();save()};stylePanel.append(anchorLine);
- const colorLine=document.createElement('label');colorLine.textContent='Graph color';
+ const colorLine=document.createElement('label');colorLine.textContent='Color';
  const color=document.createElement('input');color.type='color';color.value=entry.color;color.oninput=()=>{entry.color=color.value;toggle.style.setProperty('--dot',entry.color);schedule();save()};colorLine.append(color);stylePanel.append(colorLine);
  const opacityLine=document.createElement('label');opacityLine.textContent='Opacity';
  const opacity=document.createElement('input');opacity.type='range';opacity.min='0';opacity.max='1';opacity.step='.01';opacity.value=entry.opacity??1;
@@ -2405,7 +2430,7 @@ function renderRows(focusId=null,constantMode=false){
  pos.oninput=()=>{entry.positiveColor=pos.value;schedule();save()};posLine.append(pos);stylePanel.append(posLine);
  const boundaryColorLine=document.createElement('label');boundaryColorLine.textContent='Exclusive boundary color';const boundaryColor=document.createElement('input');boundaryColor.type='color';boundaryColor.value=entry.boundaryColor||'#ffffff';boundaryColor.oninput=()=>{entry.boundaryColor=boundaryColor.value;schedule();save()};boundaryColorLine.append(boundaryColor);stylePanel.append(boundaryColorLine);
  const patternLine=document.createElement('label');patternLine.textContent='3D exclusive pattern';const pattern=document.createElement('select');for(const [value,label] of [['checker','Checker'],['wireframe','Wireframe'],['dotted','Dotted']]){const opt=document.createElement('option');opt.value=value;opt.textContent=label;pattern.append(opt)}pattern.value=entry.boundaryPattern||'checker';pattern.onchange=()=>{entry.boundaryPattern=pattern.value;schedule();save()};patternLine.append(pattern);stylePanel.append(patternLine);
- const syncStyle=()=>{let kind='';try{kind=resolvedKind(entry)}catch{};const scalar=kind==='scalar2'||kind==='cloud3';densityLine.hidden=!(kind==='field2'||kind==='field3');const region=kind==='inequality2'||kind==='inequality3'||!!vgSplitDomain(entry.text).domain;boundaryColorLine.hidden=!region;patternLine.hidden=!(kind==='inequality2'||kind==='inequality3');const fr=frameReference(vectorNotationPlain(entry.text));anchorLine.hidden=!(fr&&kind==='vector3');anchor.checked=entry.anchorOnCurve!==false;fieldGroup.hidden=!scalar;negLine.hidden=!scalar;posLine.hidden=!scalar};
+ const syncStyle=()=>{let kind='';try{kind=resolvedKind(entry)}catch{};const scalar=kind==='scalar2'||kind==='cloud3';labelLine.hidden=kind!=='point';labelCheck.checked=entry.labelVisible===true;sizeLine.hidden=!['point','func2','implicit2','curve2','curve3','vector2','vector3','field2','field3','inequality2'].includes(kind)&&!(mode==='2d'&&['surface','implicit3'].includes(kind));const isPoint=kind==='point';sizeLine.firstChild.nodeValue=isPoint?'Point size':'Line weight';sizeInput.min=isPoint?'2':'.5';sizeInput.max=isPoint?'48':'24';sizeInput.step=isPoint?'1':'.1';sizeInput.value=isPoint?vgPointSize(entry):vgLineWeight(entry,vgDefaultWeight(kind));sizeInput.setAttribute('aria-label',isPoint?'Point size':'Line weight');densityLine.hidden=!(kind==='field2'||kind==='field3');const region=kind==='inequality2'||kind==='inequality3'||!!vgSplitDomain(entry.text).domain;boundaryColorLine.hidden=!region;patternLine.hidden=!(kind==='inequality2'||kind==='inequality3');const fr=frameReference(vectorNotationPlain(entry.text));anchorLine.hidden=!(fr&&kind==='vector3');anchor.checked=entry.anchorOnCurve!==false;fieldGroup.hidden=!scalar;negLine.hidden=!scalar;posLine.hidden=!scalar};
  stylePanel.addEventListener('click',ev=>ev.stopPropagation());toggle.addEventListener('click',syncStyle);syncStyle();
   let extend=document.createElement('button');extend.type='button';extend.className='extend3d';
   function updateExtend(){let kind;try{kind=resolvedKind(entry)}catch{kind=''}
@@ -2622,7 +2647,7 @@ function setupRenderControls(){
  const advanced=document.getElementById('rendererAdvanced');
  advanced?.addEventListener('toggle',()=>{if(advanced.open)requestAnimationFrame(()=>{$('graphMenu').scrollTop=$('graphMenu').scrollHeight})});
 }
-function projectSnapshot(){return {expressions:expressions.map(({type,updateSlider,styleVisibility,...entry})=>entry),constants:constants.map(({updatePreview,updateSlider,styleVisibility,...entry})=>entry),cubeSize,cameraDistance,sidebarWidth,sidebarCollapsed,settingBindings,positiveColor,negativeColor,mode,span,quality,cloudDensity,showZeroSlice,cloudAppearance,cloudOpacity,cloudThreshold,frameTime,vectorLengthScale,fieldLengthMode,fieldGridMode,fieldFixedFraction,fieldRelativeFraction,view:{pan,scale,axisZoom,yaw,pitch},axesOn,axisNumbersOn,gridLinesOn,numberSettings,renderModes}}
+function projectSnapshot(){return {expressions:expressions.map(({type,updateSlider,styleVisibility,styleLabel,...entry})=>entry),constants:constants.map(({updatePreview,updateSlider,styleVisibility,styleLabel,...entry})=>entry),cubeSize,cameraDistance,sidebarWidth,sidebarCollapsed,settingBindings,positiveColor,negativeColor,mode,span,quality,cloudDensity,showZeroSlice,cloudAppearance,cloudOpacity,cloudThreshold,frameTime,vectorLengthScale,fieldLengthMode,fieldGridMode,fieldFixedFraction,fieldRelativeFraction,view:{pan,scale,axisZoom,yaw,pitch},axesOn,axisNumbersOn,gridLinesOn,numberSettings,renderModes}}
 function save(){try{localStorage.setItem('vectorgraph-v1',JSON.stringify(projectSnapshot()))}catch{}}
 function initial(){try{const s=JSON.parse(localStorage.getItem('vectorgraph-v1'));if(s&&Array.isArray(s.expressions)){renderModes=Object.fromEntries(Object.keys(renderCategories).map(k=>[k,s.renderModes?.[k]==='cpu'?'cpu':'gpu']));expressions=s.expressions.map(({type,...entry})=>entry);constants=Array.isArray(s.constants)?s.constants.map(({type,...entry})=>entry):[];
  constants=constants.filter(e=>String(e.text||'').trim());
@@ -2932,6 +2957,10 @@ function vgPaintAxisLabelsCPU(plottable,projectedSurfaces){
   vgAxisLabelMasks.push({x,y,w:tile.width,h:tile.height,r,rgba:data,depth:l.depth});
  }
 }
+function vgClampSize(value,fallback,min,max){const n=Number(value);return value==null||value===''||!Number.isFinite(n)?fallback:Math.max(min,Math.min(max,n))}
+function vgDefaultWeight(kind){return kind?.startsWith('field')?1.6:kind?.startsWith('vector')?3:kind?.startsWith('curve')?2.7:kind==='implicit2'||kind==='surface'||kind==='implicit3'?2.4:2.5}
+function vgLineWeight(e,fallback=2.5){return vgClampSize(e.lineWeight,fallback,.5,24)}
+function vgPointSize(e){return vgClampSize(e.pointSize,13,2,48)}
 function entryAlpha(entry){return Math.min(1,Math.max(0,Number(entry?.opacity??1)))}
 function entryRGBA(entry,strength=1){const [r,g,b]=hexRgb(entry.color);return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,entryAlpha(entry)*strength))})`}
 function entryFieldColor(entry,sign){return sign<0?(entry.negativeColor||negativeColor):(entry.positiveColor||positiveColor)}
@@ -3101,8 +3130,8 @@ function drawParametricSlice2(entry){
  const [lo,hi]=curveDomain(entry,true),evalAt=compiledCurveEvaluator(entry);
  const candidates=[0,1,-1,2.371].map(t=>{try{return evalAt({x:0,y:0,z:0,t})[2]}catch{return NaN}});
  if(candidates.every(z=>Number.isFinite(z)&&Math.abs(z)<1e-11)){
-  const segments=curveSegments(entry,false);if(gpuCapture){for(const [a,b] of segments)gpuGeometry.line(a,b,entryRGBA(entry),2.7)}
-  else{ctx.save();ctx.beginPath();for(const [a,b] of segments){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}ctx.strokeStyle=entryRGBA(entry);ctx.lineWidth=2.7;ctx.stroke();ctx.restore()}
+  const segments=curveSegments(entry,false);if(gpuCapture){for(const [a,b] of segments)gpuGeometry.line(a,b,entryRGBA(entry),vgLineWeight(entry,2.7))}
+  else{ctx.save();ctx.beginPath();for(const [a,b] of segments){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}ctx.strokeStyle=entryRGBA(entry);ctx.lineWidth=vgLineWeight(entry,2.7);ctx.stroke();ctx.restore()}
   return;
  }
  const steps=Math.min(500,Math.max(100,Math.round(Math.max(CW,CH)/4)));
@@ -3138,7 +3167,7 @@ function drawParametricSlice2(entry){
   }
   prev=p;prevT=t;
  }
- if(anySegment){strokeGraphPath(entryRGBA(entry),2.7);}
+ if(anySegment){strokeGraphPath(entryRGBA(entry),vgLineWeight(entry,2.7));}
  for(const q of intersections){
   if(gpuCapture){
    // Do not touch the Canvas2D path while drawing through WebGL. The old
@@ -3154,9 +3183,9 @@ function drawParametricSlice2(entry){
  ctx.restore();
 }
 function sampleCurve(e,is3){
- if(gpuCapture){for(const [a,b] of curveSegments(e,is3))gpuGeometry.line(a,b,entryRGBA(e),2.7);return;}
+ if(gpuCapture){for(const [a,b] of curveSegments(e,is3))gpuGeometry.line(a,b,entryRGBA(e),vgLineWeight(e,2.7));return;}
  ctx.save();ctx.beginPath();for(const [a,b] of curveSegments(e,is3)){ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1])}
- ctx.strokeStyle=entryRGBA(e);ctx.lineWidth=2.7;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
+ ctx.strokeStyle=entryRGBA(e);ctx.lineWidth=vgLineWeight(e,2.7);ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();ctx.restore();
 }
 function drawInequality2(entry){
  const region=vgRegion(entry.text),step=Math.max(2,Math.ceil(Math.max(CW,CH)/300));if(!region)return;
@@ -3168,31 +3197,33 @@ function drawInequality2(entry){
   for(const [u,v] of edges){const a=vals[u].m,b=vals[v].m;if(!Number.isFinite(a)||!Number.isFinite(b)||(a<0)===(b<0)||a===b)continue;const t=a/(a-b);hits.push(ps[u].map((x,k)=>x+(ps[v][k]-x)*t))}for(let k=0;k+1<hits.length;k+=2){const a=hits[k],b=hits[k+1],strict=at((a[0]+b[0])/2,(a[1]+b[1])/2).strict;lines[+strict].push([a,b])}}
  // Join contour pieces before stroking, so dash phase doesn't restart on each cell.
  function chains(segments){const map=new Map(),key=p=>p.map(x=>Math.round(x*100)).join(',');segments.forEach((s,i)=>s.forEach(p=>{const k=key(p);if(!map.has(k))map.set(k,[]);map.get(k).push(i)}));const used=new Set(),out=[];for(let i=0;i<segments.length;i++){if(used.has(i))continue;const chain=segments[i].slice();used.add(i);for(const side of [0,1])while(true){const p=side?chain.at(-1):chain[0],k=key(p),j=(map.get(k)||[]).find(x=>!used.has(x));if(j===undefined)break;used.add(j);const q=segments[j].find(v=>key(v)!==k);if(!q)break;side?chain.push(q):chain.unshift(q)}out.push(chain)}return out;}
- for(let strict=0;strict<2;strict++){const paths=chains(lines[strict]);const stroke=(color,dash)=>{ctx.beginPath();for(const path of paths){ctx.moveTo(...path[0]);for(const p of path.slice(1))ctx.lineTo(...p)}ctx.strokeStyle=color;ctx.lineWidth=2.5;ctx.lineCap='round';ctx.setLineDash(dash);ctx.stroke()};if(strict){stroke(entryRGBA(entry),[2,5])}else stroke(entryRGBA(entry),[])}ctx.restore();
+ for(let strict=0;strict<2;strict++){const paths=chains(lines[strict]);const stroke=(color,dash)=>{ctx.beginPath();for(const path of paths){ctx.moveTo(...path[0]);for(const p of path.slice(1))ctx.lineTo(...p)}ctx.strokeStyle=color;ctx.lineWidth=vgLineWeight(entry,2.5);ctx.lineCap='round';ctx.setLineDash(dash);ctx.stroke()};if(strict){stroke(entryRGBA(entry),[2,5])}else stroke(entryRGBA(entry),[])}ctx.restore();
 }
 function drawInequality3(entry,arr){const region=vgRegion(entry.text);if(!region)return;const pattern=entry.boundaryPattern||'checker',alt=entry.boundaryColor||'#ffffff';for(const tri of implicitSurfaceTriangles(entry,region)){const center=[0,1,2].map(k=>tri.reduce((a,p)=>a+p[k],0)/3),strict=region.test(vgCoords(...center)).strict,p=tri.map(q=>project3(...q)),depth=p.reduce((a,q)=>a+q[2],0)/3;const stripe=Math.floor(center[0]*4)+Math.floor(center[1]*4)+Math.floor(center[2]*4),secondary=strict&&stripe%2===0;let fill=entryRGBA(entry,.22),stroke=null;if(strict&&pattern==='checker'){const rgb=hexRgb(alt);fill=secondary?`rgba(${rgb.join(',')},${.48*entryAlpha(entry)})`:entryRGBA(entry,.46);}if(strict&&pattern==='wireframe')stroke=alt;if(strict&&pattern==='dotted'&&secondary)arr.push({kind:'cloud',p:project3(...center),depth,fill:alt,r:1.7,alpha:.9});arr.push({kind:'polygon',p,depth,fill,stroke,iso:!stroke});}}
-function draw2Func(e){const ast=compiled(e.text),sample=x=>{const y=bounded(ast,{x,y:0,z:0,t:x},1e20);return {x,y,valid:Number.isFinite(y)&&vgAllows(e,vgCoords(x,y,0,x))}};let prev=null,last=null,ends=[];beginGraphPath();for(let i=0;i<=Math.ceil(CW/1.5);i++){const sx=i*1.5,x=pan.x+(sx-CW/2)/screenX(),now=sample(x);if(e._vgDomain&&last&&last.valid!==now.valid&&Number.isFinite(last.y)&&Number.isFinite(now.y)){let a=last.x,b=x;for(let k=0;k<24;k++){const m=(a+b)/2;if(sample(m).valid===last.valid)a=m;else b=m}const mid=sample((a+b)/2),q=project2(mid.x,mid.y),strict=e._vgDomain.test(vgCoords(mid.x,mid.y,0,mid.x)).strict;if(last.valid&&prev)lineGraphPath(...q);ends.push({q,strict});if(now.valid){moveGraphPath(...q);prev=q}else prev=null}last=now;if(!now.valid){prev=null;continue}const p=project2(x,now.y);if(!prev||Math.abs(p[1]-prev[1])>CH*1.5)moveGraphPath(...p);else lineGraphPath(...p);prev=p}strokeGraphPath(entryRGBA(e),2.5);for(const {q,strict} of ends){if(gpuCapture){gpuGeometry.disk(q,entryRGBA(e),4.2);if(strict)gpuGeometry.disk([q[0],q[1],(q[2]??.5)-.001],e.boundaryColor||'#ffffff',2.7)}else{ctx.save();ctx.beginPath();ctx.arc(q[0],q[1],3.7,0,2*Math.PI);ctx.fillStyle=strict?e.boundaryColor||'#ffffff':entryRGBA(e);ctx.fill();ctx.strokeStyle=entryRGBA(e);ctx.lineWidth=1.7;ctx.stroke();ctx.restore()}}}
+function draw2Func(e){const ast=compiled(e.text),sample=x=>{const y=bounded(ast,{x,y:0,z:0,t:x},1e20);return {x,y,valid:Number.isFinite(y)&&vgAllows(e,vgCoords(x,y,0,x))}};let prev=null,last=null,ends=[];beginGraphPath();for(let i=0;i<=Math.ceil(CW/1.5);i++){const sx=i*1.5,x=pan.x+(sx-CW/2)/screenX(),now=sample(x);if(e._vgDomain&&last&&last.valid!==now.valid&&Number.isFinite(last.y)&&Number.isFinite(now.y)){let a=last.x,b=x;for(let k=0;k<24;k++){const m=(a+b)/2;if(sample(m).valid===last.valid)a=m;else b=m}const mid=sample((a+b)/2),q=project2(mid.x,mid.y),strict=e._vgDomain.test(vgCoords(mid.x,mid.y,0,mid.x)).strict;if(last.valid&&prev)lineGraphPath(...q);ends.push({q,strict});if(now.valid){moveGraphPath(...q);prev=q}else prev=null}last=now;if(!now.valid){prev=null;continue}const p=project2(x,now.y);if(!prev||Math.abs(p[1]-prev[1])>CH*1.5)moveGraphPath(...p);else lineGraphPath(...p);prev=p}strokeGraphPath(entryRGBA(e),vgLineWeight(e,2.5));for(const {q,strict} of ends){if(gpuCapture){gpuGeometry.disk(q,entryRGBA(e),4.2);if(strict)gpuGeometry.disk([q[0],q[1],(q[2]??.5)-.001],e.boundaryColor||'#ffffff',2.7)}else{ctx.save();ctx.beginPath();ctx.arc(q[0],q[1],3.7,0,2*Math.PI);ctx.fillStyle=strict?e.boundaryColor||'#ffffff':entryRGBA(e);ctx.fill();ctx.strokeStyle=entryRGBA(e);ctx.lineWidth=1.7;ctx.stroke();ctx.restore()}}}
 function zeroSetAST(ast){if(ast&&ast.k==='o'&&ast.s==='^'&&ast.b.k==='n'&&ast.b.v>0)return zeroSetAST(ast.a);if(ast&&ast.k==='o'&&ast.s==='/' )return zeroSetAST(ast.a);return ast}
-function drawImplicit2(e,kind='implicit2'){const ast=kind===''?zeroSetAST(compiled(e.text)):compiled(e.text,kind),N=130,Lx=(visible2DBounds('x')[1]-visible2DBounds('x')[0])*.53,Ly=(visible2DBounds('y')[1]-visible2DBounds('y')[0])*.53,x0=pan.x-Lx,y0=pan.y-Ly,dx=2*Lx/N,dy=2*Ly/N;let values=[];for(let j=0;j<=N;j++){let row=[];for(let i=0;i<=N;i++){let x=x0+i*dx,y=y0+j*dy;row.push(bounded(ast,{x,y,z:0,t:0},1e9))}values.push(row)}beginGraphPath();for(let j=0;j<N;j++)for(let i=0;i<N;i++){let x=x0+i*dx,y=y0+j*dy,f=[values[j][i],values[j][i+1],values[j+1][i+1],values[j+1][i]];if(f.some(a=>!Number.isFinite(a)))continue;let pts=[[x,y],[x+dx,y],[x+dx,y+dy],[x,y+dy]],edges=[[0,1],[1,2],[2,3],[3,0]],hits=[];for(let [u,v]of edges){if((f[u]<=0&&f[v]>=0)||(f[v]<=0&&f[u]>=0)){let denom=f[u]-f[v],t=Math.abs(denom)<1e-12?.5:f[u]/denom;if(t>=0&&t<=1){{const px=pts[u][0]+(pts[v][0]-pts[u][0])*t,py=pts[u][1]+(pts[v][1]-pts[u][1])*t;if(vgAllows(e,vgCoords(px,py)))hits.push(project2(px,py))}}}}for(let h=0;h+1<hits.length;h+=2){moveGraphPath(...hits[h]);lineGraphPath(...hits[h+1])}}strokeGraphPath(entryRGBA(e),2.4)}
+function drawImplicit2(e,kind='implicit2'){const ast=kind===''?zeroSetAST(compiled(e.text)):compiled(e.text,kind),N=130,Lx=(visible2DBounds('x')[1]-visible2DBounds('x')[0])*.53,Ly=(visible2DBounds('y')[1]-visible2DBounds('y')[0])*.53,x0=pan.x-Lx,y0=pan.y-Ly,dx=2*Lx/N,dy=2*Ly/N;let values=[];for(let j=0;j<=N;j++){let row=[];for(let i=0;i<=N;i++){let x=x0+i*dx,y=y0+j*dy;row.push(bounded(ast,{x,y,z:0,t:0},1e9))}values.push(row)}beginGraphPath();for(let j=0;j<N;j++)for(let i=0;i<N;i++){let x=x0+i*dx,y=y0+j*dy,f=[values[j][i],values[j][i+1],values[j+1][i+1],values[j+1][i]];if(f.some(a=>!Number.isFinite(a)))continue;let pts=[[x,y],[x+dx,y],[x+dx,y+dy],[x,y+dy]],edges=[[0,1],[1,2],[2,3],[3,0]],hits=[];for(let [u,v]of edges){if((f[u]<=0&&f[v]>=0)||(f[v]<=0&&f[u]>=0)){let denom=f[u]-f[v],t=Math.abs(denom)<1e-12?.5:f[u]/denom;if(t>=0&&t<=1){{const px=pts[u][0]+(pts[v][0]-pts[u][0])*t,py=pts[u][1]+(pts[v][1]-pts[u][1])*t;if(vgAllows(e,vgCoords(px,py)))hits.push(project2(px,py))}}}}for(let h=0;h+1<hits.length;h+=2){moveGraphPath(...hits[h]);lineGraphPath(...hits[h+1])}}strokeGraphPath(entryRGBA(e),vgLineWeight(e,2.4))}
+function vgPointOutline(e){return hoveredPointId===e.id?'#ffffff':'#000000'}
+function vgPointLabelEntry(hit){return [...expressions,...constants].find(e=>e.id===hit.id)||hit.entry}
 function drawPointMarker(e,is3){
- const point=pointFromExpression(e);if(!point)return;
+ const point=pointFromExpression(e);if(!point||entryAlpha(e)<=0)return;
  if(!is3&&point.dimension===3&&Math.abs(point.coord[2])>1e-10)return;
  if((is3?['x','y','z']:['x','y']).some((axis,i)=>point.coord[i]<bounds(axis)[0]||point.coord[i]>bounds(axis)[1]))return;
  const screen=is3?project3(...point.coord):project2(point.coord[0],point.coord[1]);
- if(screen[0]<-16||screen[0]>CW+16||screen[1]<-16||screen[1]>CH+16)return;
- const r=6.4;
- if(gpuCapture){gpuGeometry.disk(screen,'#fff',r+1.6);gpuGeometry.disk([screen[0],screen[1],(screen[2]??.52)-.001],entryRGBA(e),r)}
- else {ctx.save();ctx.beginPath();ctx.arc(screen[0],screen[1],r+1.6,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
- ctx.beginPath();ctx.arc(screen[0],screen[1],r,0,Math.PI*2);ctx.fillStyle=entryRGBA(e);ctx.fill();
- ctx.strokeStyle='#ffffff';ctx.lineWidth=1.2;ctx.stroke();ctx.restore();}
- drawnPointHits.push({id:e.id,entry:e,point,screen});
- if(selectedPointId===e.id){
-  const txt=(point.label?point.label.toUpperCase()+' = ':'')+'('+point.coord.slice(0,point.dimension).map(formatNumber).join(', ')+')';
-  ctx.save();ctx.font='12px ui-sans-serif,system-ui';const w=ctx.measureText(txt).width;
-  let x=Math.min(CW-w-19,Math.max(6,screen[0]+11)),y=Math.max(20,Math.min(CH-7,screen[1]-17));
-  ctx.fillStyle='#fff';ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x-6,y-15,w+12,23,6);ctx.fill();ctx.stroke();ctx.fillStyle='#17233b';ctx.fillText(txt,x,y);ctx.restore();
- }
+ const r=vgPointSize(e)/2,outer=r+1.25,alpha=entryAlpha(e),rgb=hexRgb(vgPointOutline(e)),outline=`rgba(${rgb.join(',')},${alpha})`;
+ if(screen[0]<-outer||screen[0]>CW+outer||screen[1]<-outer||screen[1]>CH+outer)return;
+ if(gpuCapture){const p=[screen[0],screen[1],Number.isFinite(screen[2])?screen[2]:.52];gpuGeometry.disk(p,entryRGBA(e),r);
+  const at=(a,rad)=>[p[0]+rad*Math.cos(a),p[1]+rad*Math.sin(a),p[2]];
+  for(let i=0;i<20;i++){const a=i*Math.PI/10,b=(i+1)*Math.PI/10;gpuGeometry.polygon([at(a,r),at(a,outer),at(b,outer),at(b,r)],outline,null,-.001)}
+ }else{ctx.save();ctx.beginPath();ctx.arc(screen[0],screen[1],r,0,Math.PI*2);ctx.fillStyle=entryRGBA(e);ctx.fill();ctx.beginPath();ctx.arc(screen[0],screen[1],r+.625,0,Math.PI*2);ctx.strokeStyle=outline;ctx.lineWidth=1.25;ctx.stroke();ctx.restore()}
+ drawnPointHits.push({id:e.id,entry:vgPointLabelEntry({id:e.id,entry:e}),point,screen,radius:outer});
 }
+function vgPaintPointLabels(){for(const hit of drawnPointHits){const {point,screen,radius}=hit;if(!vgPointLabelEntry(hit).labelVisible)continue;
+ const txt=(point.label?point.label+' = ':'')+'('+point.coord.slice(0,point.dimension).map(formatNumber).join(', ')+')';
+ ctx.save();ctx.font='12px ui-sans-serif,system-ui';const w=ctx.measureText(txt).width;
+ const x=Math.max(6,Math.min(CW-w-8,screen[0]+radius+6)),y=Math.max(20,Math.min(CH-7,screen[1]-radius-6));
+ ctx.fillStyle='#fff';ctx.strokeStyle='#cbd5e1';ctx.lineWidth=1;ctx.beginPath();ctx.roundRect(x-5,y-15,w+10,23,5);ctx.fill();ctx.stroke();ctx.fillStyle='#17233b';ctx.fillText(txt,x,y);ctx.restore();
+}}
 
 // A single source of truth for spatial field sampling and vector glyph magnitudes.
 function niceFieldStep(raw){
@@ -3253,7 +3284,7 @@ function vectorArrows(entry,is3,field,field2D=false){
 function drawVec(e,is3,field,field2D=false){
  for(const [a,b] of vectorArrows(e,is3,field,field2D)){
   const from=is3?project3(...a):project2(...a),to=is3?project3(...b):project2(...b);
-  arrow(from,to,entryRGBA(e),field?1.6:3);if(!field)dot(from,entryRGBA(e),3);
+  arrow(from,to,entryRGBA(e),vgLineWeight(e,field?1.6:3));if(!field)dot(from,entryRGBA(e),3);
  }
 }
 
@@ -3539,15 +3570,15 @@ function paintVolumeGeometry(plottable,geo,projectedSurfaces,includeLabels=true)
    const region=kind.startsWith('inequality')?vgRegion(e.text):undefined;
    for(const tri of implicitSurfaceTriangles(e,region)){const p=tri.map(v=>project3(...v));geo.triangle(p[0],p[1],p[2],kind.startsWith('inequality')?.35*opacity:opacity)}
   }
-  if(kind==='point'){const p=pointFromExpression(e);if(p&&p.coord.every((v,i)=>v>=[X,Y,Z][i][0]&&v<=[X,Y,Z][i][1]))geo.disk(project3(...p.coord),8,opacity);}
+  if(kind==='point'){const p=pointFromExpression(e);if(p&&p.coord.every((v,i)=>v>=[X,Y,Z][i][0]&&v<=[X,Y,Z][i][1])){const q=project3(...p.coord),r=vgPointSize(e)/2;geo.disk(q,r+1.25,opacity);}}
   if(kind==='curve3'||kind==='curve2'){
-   for(const [a,b] of curveSegments(e,true))geo.segment(a,b,2.7,opacity,renderModes.lines==='gpu'&&!gpuGeometry.failed);
+   for(const [a,b] of curveSegments(e,true))geo.segment(a,b,vgLineWeight(e,2.7),opacity,renderModes.lines==='gpu'&&!gpuGeometry.failed);
   }
   if(['vector3','vector2','field3','field2'].includes(kind)){
    const field=kind.startsWith('field');
    for(const [a0,b0] of vectorArrows(e,true,field,kind==='field2')){
     const a=project3(...a0),b=project3(...b0);
-    const width=field?1.6:3,gpu=renderModes.vectors==='gpu'&&!gpuGeometry.failed;
+    const width=vgLineWeight(e,field?1.6:3),gpu=renderModes.vectors==='gpu'&&!gpuGeometry.failed;
     for(const [p,q] of arrowSegments(a,b,width))geo.segment(p,q,width,opacity,gpu);
     if(!field)geo.disk(a,3,opacity);
    }
@@ -3947,10 +3978,10 @@ precision highp float;in vec2 uv;uniform sampler2D image;out vec4 fragColor;void
   target.push(p[0],p[1],Math.max(-.99,this.z(p)+bias),...col,edge,half);
  },
  tri(a,b,c,col,bias=0){const target=col[3]<.99?this.transVerts:this.verts;this.vert(a,col,-1,0,bias,target);this.vert(b,col,-1,0,bias,target);this.vert(c,col,-1,0,bias,target)},
- polygon(points,fill,stroke){
+ polygon(points,fill,stroke,bias=0){
   if(points.length<3)return;
   const color=this.rgba(fill);
-  for(let j=1;j<points.length-1;j++)this.tri(points[0],points[j],points[j+1],color);
+  for(let j=1;j<points.length-1;j++)this.tri(points[0],points[j],points[j+1],color,bias);
   if(stroke)for(let j=0;j<points.length;j++)this.line(points[j],points[(j+1)%points.length],stroke,.7,-.000005);
  },
  line(a,b,color,width=1,bias=0){
@@ -4100,6 +4131,7 @@ function draw(){
    legend=legendRange>1e-12;
   }
  }
+ vgPaintPointLabels();
  refreshBoundsInputs();updateCloudLegend(legend,legendRange,mode==='2d');
  const geometrySummary=Object.values(renderModes).some(s=>s==='gpu')?(gpuGeometry.gl&&!gpuGeometry.failed?'GPU geometry':'CPU geometry fallback'):'CPU geometry';
  $('hud').textContent=(mode==='3d'?`3D · orbit ${Math.round(yaw*180/Math.PI)}° / ${Math.round(pitch*180/Math.PI)}°`:`2D · zoom ${Math.round(scale*100)}%`)+` · x ${formatNumber(axisZoom.x)}× y ${formatNumber(axisZoom.y)}× z ${formatNumber(axisZoom.z)}× · ${geometrySummary}`+(gpuStatus?' · '+gpuStatus:'');
@@ -4174,6 +4206,7 @@ function preset(name){
   frenet:{mode:'3d',rows:['\\vec{v}(t)=\\langle 3\\cos(t),3\\sin(t),t/2\\rangle','\\hat{T}_{\\vec{v}}(1)','\\hat{N}_{\\vec{v}}(1)','\\hat{B}_{\\vec{v}}(1)']}
  };
  const p=P[name];if(!p)return;
+ vgRemovedRows.length=0;hoveredPointId=null;
  expressions=p.rows.map((text,i)=>({id:nextId++,text,color:colors[i%colors.length],show:true}));
  mode=p.mode;rebuildDefinitions();reset();renderRows();updateMode();
 }
@@ -4246,11 +4279,12 @@ $('mode3').onclick=()=>{mode='3d';updateMode()};$('mode2').onclick=()=>{mode='2d
  $('cameraDistance').oninput=()=>{cameraDistance=Number($('cameraDistance').value);$('cameraDistanceValue').textContent=formatNumber(cameraDistance)+'× cube radius';schedule();save()};
  $('cubeSize').oninput=()=>{cubeSize=Number($('cubeSize').value);$('cubeSizeValue').textContent=Math.round(cubeSize*200)+'%';schedule();save()};
  
- $('clear').onclick=()=>{expressions=[];rebuildDefinitions();renderRows();schedule();save()};$('axes').onclick=()=>{axesOn=!axesOn;updateGraphVisibility();schedule();save()};$('axisNumbers').onclick=()=>{axisNumbersOn=!axisNumbersOn;updateGraphVisibility();schedule();save()};$('gridLines').onclick=()=>{gridLinesOn=!gridLinesOn;updateGraphVisibility();schedule();save()};$('preset').onchange=()=>{preset($('preset').value);$('preset').value=''};$('mesh').onchange=()=>{quality=+$('mesh').value;schedule();save()};$('zeroSlice').onchange=()=>{showZeroSlice=$('zeroSlice').checked;schedule();save()};$('cloudDensity').oninput=()=>{cloudDensity=+$('cloudDensity').value;updateDensityLabel();schedule();save()};$('cloudOpacity').oninput=()=>{cloudOpacity=Number($('cloudOpacity').value);updateCloudControls();schedule();save()};$('cloudThreshold').oninput=()=>{cloudThreshold=Number($('cloudThreshold').value);updateCloudControls();schedule();save()};$('fieldLengthMode').onchange=()=>{fieldLengthMode=$('fieldLengthMode').value;updateVectorFieldSettings();schedule();save()};
+ $('clearExpressions').onclick=()=>vgDeleteRows(false,new Set(expressions.map(e=>e.id)));$('clearConstants').onclick=()=>vgDeleteRows(true,new Set(constants.map(e=>e.id)));$('clear').onclick=$('clearExpressions').onclick;$('axes').onclick=()=>{axesOn=!axesOn;updateGraphVisibility();schedule();save()};$('axisNumbers').onclick=()=>{axisNumbersOn=!axisNumbersOn;updateGraphVisibility();schedule();save()};$('gridLines').onclick=()=>{gridLinesOn=!gridLinesOn;updateGraphVisibility();schedule();save()};$('preset').onchange=()=>{preset($('preset').value);$('preset').value=''};$('mesh').onchange=()=>{quality=+$('mesh').value;schedule();save()};$('zeroSlice').onchange=()=>{showZeroSlice=$('zeroSlice').checked;schedule();save()};$('cloudDensity').oninput=()=>{cloudDensity=+$('cloudDensity').value;updateDensityLabel();schedule();save()};$('cloudOpacity').oninput=()=>{cloudOpacity=Number($('cloudOpacity').value);updateCloudControls();schedule();save()};$('cloudThreshold').oninput=()=>{cloudThreshold=Number($('cloudThreshold').value);updateCloudControls();schedule();save()};$('fieldLengthMode').onchange=()=>{fieldLengthMode=$('fieldLengthMode').value;updateVectorFieldSettings();schedule();save()};
  $('fieldGridMode').onchange=()=>{fieldGridMode=$('fieldGridMode').value;schedule();save()};
  $('fieldFixedFraction').oninput=()=>{fieldFixedFraction=Number($('fieldFixedFraction').value);updateVectorFieldSettings();schedule();save()};
  $('fieldRelativeFraction').oninput=()=>{fieldRelativeFraction=Number($('fieldRelativeFraction').value);updateVectorFieldSettings();schedule();save()};
  $('vectorLengthScale').oninput=()=>{vectorLengthScale=Number($('vectorLengthScale').value);$('vectorLengthLabel').textContent=vectorLengthScale.toFixed(2)+'×';schedule();save()};$('frameTime').oninput=()=>{frameTime=Number($('frameTime').value);updateCloudControls();schedule();save()};$('op').onchange=updateCalcFields;$('compute').onclick=compute;$('plotresult').onclick=plotCalc;$('zoomin').onclick=()=>{scale=Math.min(1e8,scale*1.25);schedule();save()};$('zoomout').onclick=()=>{scale=Math.max(1e-8,scale/1.25);schedule();save()};
+window.addEventListener('keydown',e=>{if(!e.defaultPrevented&&(e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&e.key.toLowerCase()==='z'&&!typingTarget(e.target)&&vgUndoRows())e.preventDefault()});
 function typingTarget(el){return !!(el&&el.closest&&el.closest('input,textarea,select,[contenteditable="true"],[role="textbox"]'));}
 window.addEventListener('keydown',e=>{if(typingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey)return;const a=e.key.toLowerCase();if(!e.repeat&&a==='d'){e.preventDefault();mode=mode==='3d'?'2d':'3d';updateMode();return;}if(!e.repeat&&a==='m'){e.preventDefault();$(sidebarCollapsed?'reopenSidebar':'collapseSidebar').click();return;}if(!e.repeat&&/^[1-9]$/.test(a)){const row=$('expressions').children[Number(a)-1];if(row){e.preventDefault();if(sidebarCollapsed)$('reopenSidebar').click();enterExpressionEdit(row,row.querySelector('.latex-input'));row.scrollIntoView({block:'nearest'});}return;}if('xyz'.includes(a)&&a.length===1){pressedAxes.add(a);axisStatus();e.preventDefault()}});
 window.addEventListener('keyup',e=>{if('xyz'.includes(e.key.toLowerCase())&&e.key.length===1){pressedAxes.delete(e.key.toLowerCase());axisStatus()}});
@@ -4273,8 +4307,7 @@ function moveConstrained(dx,dy){
  for(const key of (keys.length?keys:['x','y','z']))pan[key]-=shift[key];
 }
 function pointAtPixel(x,y){
- for(const hit of drawnPointHits)if(Math.hypot(x-hit.screen[0],y-hit.screen[1])<14)return hit;
- return null;
+ let best=null,distance=Infinity;for(const hit of drawnPointHits){const d=Math.hypot(x-hit.screen[0],y-hit.screen[1]);if(d<=Math.max(7,hit.radius+3)&&(d<distance||d===distance&&(hit.screen[2]??0)<(best?.screen[2]??0))){best=hit;distance=d}}return best;
 }
 function movePoint(hit,dx,dy){
  const {entry,point}=hit;if(String(entry.text).trim()==='O')return;let coord=point.coord.slice();
@@ -4296,16 +4329,18 @@ function movePoint(hit,dx,dy){
 }
 
 canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);const rect=canvas.getBoundingClientRect();const hit=pointAtPixel(e.clientX-rect.left,e.clientY-rect.top);
- if(hit&&e.button===0&&String(hit.entry?.text||'').trim()!=='O'){selectedPointId=hit.id;drag={x:e.clientX,y:e.clientY,button:e.button,point:hit};schedule();return;}
- if(selectedPointId!==null){selectedPointId=null;schedule()}drag={x:e.clientX,y:e.clientY,button:e.button};});
-canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+ if(hit&&e.button===0){drag={x:e.clientX,y:e.clientY,startX:e.clientX,startY:e.clientY,button:e.button,point:hit,moved:false};return;}
+ drag={x:e.clientX,y:e.clientY,button:e.button};});
+canvas.addEventListener('pointerup',()=>{if(drag?.point&&!drag.moved){const e=vgPointLabelEntry(drag.point);e.labelVisible=!e.labelVisible;if(e.styleLabel)e.styleLabel.checked=e.labelVisible;save();schedule()}drag=null});
+canvas.addEventListener('pointercancel',()=>drag=null);
+canvas.addEventListener('pointerleave',()=>{if(hoveredPointId!==null){hoveredPointId=null;schedule()}});
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 canvas.addEventListener('pointermove',e=>{
  const r=canvas.getBoundingClientRect(),sx=e.clientX-r.left,sy=e.clientY-r.top;
  if(mode==='2d'&&!drag)$('hud').textContent=`x ${fmt(pan.x+(sx-CW/2)/screenX())} · y ${fmt(pan.y+(CH/2-sy)/screenY())}`;
- if(!drag){const hit=pointAtPixel(sx,sy);canvas.style.cursor=hit?'pointer':'grab';return;}
+ if(!drag){const hit=pointAtPixel(sx,sy),id=hit?.id??null;canvas.style.cursor=hit?'pointer':'grab';if(id!==hoveredPointId){hoveredPointId=id;schedule()}return;}
  let dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.x=e.clientX;drag.y=e.clientY;
- if(drag.point){movePoint(drag.point,dx,dy);return;}
+ if(drag.point){if(!drag.moved){if(Math.hypot(e.clientX-drag.startX,e.clientY-drag.startY)<4)return;drag.moved=true;dx=e.clientX-drag.startX;dy=e.clientY-drag.startY}movePoint(drag.point,dx,dy);return;}
  if(mode==='3d'&&drag.button!==2&&(activeAxisNames().length===0||activeAxisNames().length>2)){yaw+=dx*.008;pitch=Math.min(1.55,Math.max(-1.55,pitch+dy*.008))}
  else moveConstrained(dx,dy);schedule();save();
 });
