@@ -535,7 +535,7 @@ body.dark-ui select,body.dark-ui .graph-settings-menu select,body.dark-ui .expre
 <p>Click the <b>+</b> beside Expressions and type in Auto mode. The editor formats equations as you type. Try <code>y=2sin(x)</code> or <code>z=x^2+y^2</code> (3D). The graph type is inferred from your expression. A function of x and y gives a heatmap in 2D or a surface in 3D; a function of x, y and z gives a scalar volume in 3D.</p>
 <h3>2. Editor shortcuts</h3>
 <dl class="vg-tutorial-keys">
-<dt><code>/</code> · <code>^</code> · <code>_</code></dt><dd>Fraction, exponent, subscript.</dd>
+<dt><code>/</code> · <code>^</code> · <code>_</code></dt><dd>Fraction, exponent, subscript. At the end of a completed exponent or trig argument, +, − and comparison operators exit the slot. Use parentheses to keep an operation inside it. Fractions and roots keep their normal structural editing.</dd>
 <dt><code>sqrt</code> · <code>cbrt</code></dt><dd>Square and cube roots.</dd>
 <dt><code>pi</code> · <code>infinity</code></dt><dd>π and ∞. Type Greek names or use the command menu; use <code>\xi</code> for ξ.</dd>
 <dt><code>\</code></dt><dd>Open the command menu. Manual mode accepts raw LaTeX; Auto displays formatted mathematics.</dd>
@@ -2281,9 +2281,52 @@ function vgUnaryClosePosition(text,at){
  const paren=group.pairs.get(at);
  return paren!==undefined&&text.slice(group.open+1,paren).trim()===''?group.close+1:at+1;
 }
+// For linear typing, a binary operator at the end of an unparenthesized
+// trig argument or ordinary exponent belongs to the surrounding expression.
+// Radicals, fractions, subscripts and calculus bounds remain structural slots.
+function vgOperatorExitPosition(text,at){
+ const pairs=easyMathPairs(text);
+ let pos=at;
+ while(text[pos]==='}'){
+  const open=pairs.get(pos);
+  if(open===undefined)break;
+  const before=text.slice(0,open);
+  const trig=/\\(?:sin|cos|tan|sec|csc|cot|sinh|cosh|tanh|arcsin|arccos|arctan|operatorname\s*\{(?:asinh|acosh|atanh)\})\s*$/.test(before);
+  const power=before.endsWith('^');
+  if(!trig&&!power)break;
+  if(power){
+   // A sum, product or integral upper bound is not an ordinary power.
+   const lowerClose=open-2,lowerOpen=pairs.get(lowerClose);
+   if(text[lowerClose]==='}'&&lowerOpen!==undefined&&text[lowerOpen-1]==='_'&&/\\(?:sum|prod|int|lim)(?:\\limits)?\s*$/.test(text.slice(0,lowerOpen-1)))break;
+  }
+  const content=text.slice(open+1,pos).trim();
+  // Leading signs, unfinished operators and empty templates stay in the slot.
+  if(!content||/[+\-*/^=<>.,]$/.test(content)||/\{\s*\}/.test(content)||/\\(?:le|ge|leq|geq|cdot|times)\s*$/.test(content))break;
+  // The caret is at the closing brace, not inside explicit parentheses.
+  // Reject unmatched delimiters rather than jumping over malformed content.
+  let balanced=true;
+  for(let i=open+1;i<pos;i++){
+   if(text[i]==='\\'&&text[i+1]&&!/[A-Za-z]/.test(text[i+1])){i++;continue}
+   if('([{'.includes(text[i])&&(!(pairs.get(i)>i)||pairs.get(i)>=pos)){balanced=false;break}
+   if(')]}'.includes(text[i])&&(!(pairs.get(i)<i)||pairs.get(i)<=open)){balanced=false;break}
+  }
+  if(!balanced)break;
+  pos++;
+ }
+ return pos;
+}
 function mathEditorShortcut(input,event){
  if(event.ctrlKey||event.metaKey||event.altKey||event.isComposing)return false;
  const a=input.selectionStart??input.value.length,b=input.selectionEnd??a;
+ if(a===b&&['+','-','<','>','='].includes(event.key)){
+  const end=vgOperatorExitPosition(input.value,a);
+  if(end!==a){
+   event.preventDefault();input.setSelectionRange(end,end);
+   // Reuse normal delimiter shortcuts (e.g. closing a vector) before inserting.
+   if(!mathEditorShortcut(input,event))mathEditorReplace(input,end,end,event.key,1);
+   return true;
+  }
+ }
  if(event.key===','&&a===b&&vgUnaryGroupAtClose(input.value,a)){
   event.preventDefault();mathEditorReplace(input,a+1,a+1,',',1);return true;
  }
