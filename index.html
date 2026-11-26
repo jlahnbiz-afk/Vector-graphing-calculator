@@ -2890,7 +2890,7 @@ function vgQueueAxisLabelsGPU(needsVolumeMask){
   }
   // The existing volume depth pass still needs label coverage. Do not
   // pre-occlude the glyph: its depth test against the scene happens there.
-  if(needsVolumeMask)vgAxisLabelMasks.push({x,y,w:glyph.w,h:glyph.h,r:glyph.r,rgba:glyph.rgba,depth:z,color:hexRgb(l.color)});
+  if(needsVolumeMask)vgAxisLabelMasks.push({x,y,w:glyph.w,h:glyph.h,r:glyph.r,rgba:glyph.rgba,depth:z});
  }
 }
 function vgCanUseGPULabels(plottable){
@@ -2908,10 +2908,10 @@ function vgCanUseGPULabels(plottable){
  return gpuGeometry.ready();
 }
 // Original CPU/mixed-renderer fallback, with scene-aware occlusion.
-function vgPaintAxisLabelsCPU(plottable){
+function vgPaintAxisLabelsCPU(plottable,projectedSurfaces){
  if(!vgAxisLabels.length)return;
  const ratio=Math.min(1,Math.sqrt(200000/(CW*CH))),W=Math.max(1,Math.round(CW*ratio)),H=Math.max(1,Math.round(CH*ratio));
- const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H),false);
+ const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H),projectedSurfaces,false);
  const r=Math.max(1,dpr),measure=document.createElement('canvas').getContext('2d');
  for(const l of vgAxisLabels){
   measure.font=l.font;const width=Math.ceil(measure.measureText(l.text).width+6),height=26,x=l.x-3,y=l.y-height/2;
@@ -2929,7 +2929,7 @@ function vgPaintAxisLabelsCPU(plottable){
   }
   if(!visible)continue;
   c.putImageData(img,0,0);ctx.drawImage(tile,x,y,tile.width/r,tile.height/r);
-  vgAxisLabelMasks.push({x,y,w:tile.width,h:tile.height,r,rgba:data,depth:l.depth,color:hexRgb(l.color)});
+  vgAxisLabelMasks.push({x,y,w:tile.width,h:tile.height,r,rgba:data,depth:l.depth});
  }
 }
 function entryAlpha(entry){return Math.min(1,Math.max(0,Number(entry?.opacity??1)))}
@@ -2947,8 +2947,8 @@ function clipSurfacePolygon(poly,zmin,zmax){
  return halfPlane(halfPlane(poly,zmin,true),zmax,false);
 }
 function vgClipPolygon(poly,domain){const out=[];for(let i=0;i<poly.length;i++){const A=poly[i],B=poly[(i+1)%poly.length],a=domain.test(vgCoords(...A)),b=domain.test(vgCoords(...B));if(a.included)out.push(A);if(a.included!==b.included){let l=0,h=1;for(let k=0;k<18;k++){const u=(l+h)/2,P=A.map((x,k)=>x+(B[k]-x)*u);if(domain.test(vgCoords(...P)).included===a.included)l=u;else h=u}out.push(A.map((x,k)=>x+(B[k]-x)*(l+h)/2))}}return out;}
-function drawSurface(e,arr){
- const ast=checkVariables(compiled(e.text)),N=quality,X=bounds('x'),Y=bounds('y'),Z=bounds('z'),dx=(X[1]-X[0])/N,dy=(Y[1]-Y[0])/N,rgb=hexRgb(e.color),verts=[];
+function forEachProjectedSurfacePolygon(e,visit){
+ const ast=checkVariables(compiled(e.text)),N=quality,X=bounds('x'),Y=bounds('y'),Z=bounds('z'),dx=(X[1]-X[0])/N,dy=(Y[1]-Y[0])/N,verts=[];
  for(let j=0;j<=N;j++){let row=[];const y=Y[0]+j*dy;for(let i=0;i<=N;i++){
   const x=X[0]+i*dx,z=bounded(ast,{x,y,z:0,t:frameTime},1e20);row.push(Number.isFinite(z)?[x,y,z]:null);
  }verts.push(row)}
@@ -2956,10 +2956,18 @@ function drawSurface(e,arr){
   let corners=[verts[j][i],verts[j][i+1],verts[j+1][i+1],verts[j+1][i]];
   if(corners.some(v=>!v))continue;
   corners=clipSurfacePolygon(corners,Z[0],Z[1]);if(e._vgDomain)corners=vgClipPolygon(corners,e._vgDomain);if(corners.length<3)continue;
-  const p=corners.map(a=>project3(...a));let depth=p.reduce((sum,q)=>sum+q[2],0)/p.length;
-  const shade=.78+.1*Math.sin((i+j)*.13),fill=`rgba(${Math.round(rgb[0]*shade)},${Math.round(rgb[1]*shade)},${Math.round(rgb[2]*shade)},${Math.min(1,.87*entryAlpha(e))})`;
-  arr.push({depth,fill,stroke:`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${.14*entryAlpha(e)})`,p});
+  visit(corners.map(a=>project3(...a)),i,j);
  }
+}
+function drawSurface(e,arr,projectedSurfaces){
+ const rgb=hexRgb(e.color),alpha=entryAlpha(e),start=arr.length;
+ const stroke=`rgba(${rgb[0]},${rgb[1]},${rgb[2]},${.14*alpha})`;
+ forEachProjectedSurfacePolygon(e,(p,i,j)=>{
+  const depth=p.reduce((sum,q)=>sum+q[2],0)/p.length;
+  const shade=.78+.1*Math.sin((i+j)*.13),fill=`rgba(${Math.round(rgb[0]*shade)},${Math.round(rgb[1]*shade)},${Math.round(rgb[2]*shade)},${Math.min(1,.87*alpha)})`;
+  arr.push({depth,fill,stroke,p});
+ });
+ if(projectedSurfaces)projectedSurfaces.set(e,arr.slice(start));
 }
 function extruded2DPolygons(entry,kind){
  const X=bounds('x'),Y=bounds('y'),Z=bounds('z'),quads=[];
@@ -3249,25 +3257,6 @@ function drawVec(e,is3,field,field2D=false){
  }
 }
 
-// In a 3D scalar cloud, coordinates are (x,y,z); color encodes f(x,y,z), since the actual graph is in four dimensions.
-function interpolateRGB(a,b,t){return a.map((v,i)=>Math.round(v+(b[i]-v)*t))}
-function valueRGB(v,maxAbs){
- let norm=Math.max(1e-9,maxAbs),signed=Math.sign(v)*Math.asinh(5*Math.abs(v)/norm)/Math.asinh(5);
- let c=signed<0?interpolateRGB([40,111,184],[225,235,246],signed+1):interpolateRGB([225,235,246],[233,86,72],signed);
- return `rgb(${c[0]},${c[1]},${c[2]})`;
-}
-function drawCloud3(e,renderables){
- const f=checkVariables(compiled(e.text)),N=cloudDensity,box=['x','y','z'].map(a=>bounds(a)),points=[],maxAbs=0;
- for(let iz=0;iz<N;iz++)for(let iy=0;iy<N;iy++)for(let ix=0;ix<N;ix++){
-  const t=[ix,iy,iz],coords=t.map((v,i)=>box[i][0]+(box[i][1]-box[i][0])*v/(N-1));
-  const [x,y,z]=coords,value=bounded(f,{x,y,z,t:frameTime},1e20);if(!Number.isFinite(value))continue;
-  points.push({p:project3(x,y,z),value});maxAbs=Math.max(maxAbs,Math.abs(value));
- }
- for(const entry of points){const strength=maxAbs>1e-12?Math.min(1,Math.abs(entry.value)/maxAbs):0;if(strength<cloudThreshold)continue;
-  renderables.push({kind:'cloud',p:entry.p,depth:entry.p[2],r:Math.max(1.15,3.3-cloudDensity*.052),fill:valueRGB(entry.value,maxAbs),alpha:Math.max(.28,.68-cloudDensity*.012)});
- }
- return maxAbs;
-}
 // Marching tetrahedra: extract a continuous triangular level surface from F(x,y,z)=0.
 // Shared world-space mesh is reused by onscreen geometry and volume-depth compositing.
 const implicitMeshCache=new Map();
@@ -3486,16 +3475,16 @@ function rayCube(o,d,unused){
  }
  return [near,far];
 }
-function volumeGeometry(W,H){
- const size=W*H,geo={W,H,depth:new Float32Array(size).fill(Infinity),coverage:new Float32Array(size),color:new Uint8Array(size*3),sx:W/CW,sy:H/CH};
- function pixel(x,y,t,rgb,alpha=1){if(x<0||y<0||x>=W||y>=H||!Number.isFinite(t)||!(alpha>0))return;
-  const j=y*W+x;if(t<geo.depth[j]-1e-7){geo.depth[j]=t;geo.coverage[j]=alpha;let at=3*j;geo.color[at]=rgb[0];geo.color[at+1]=rgb[1];geo.color[at+2]=rgb[2]}else if(Math.abs(t-geo.depth[j])<=1e-7)geo.coverage[j]=Math.max(geo.coverage[j],alpha)}
- geo.disk=(p,rgb,r,alpha=1)=>{
+function volumeGeometry(W,H,depth=new Float32Array(W*H)){
+ const geo={W,H,depth:depth.fill(Infinity),coverage:new Float32Array(W*H),sx:W/CW,sy:H/CH};
+ function pixel(x,y,t,alpha=1){if(x<0||y<0||x>=W||y>=H||!Number.isFinite(t)||!(alpha>0))return;
+  const j=y*W+x;if(t<geo.depth[j]-1e-7){geo.depth[j]=t;geo.coverage[j]=alpha}else if(Math.abs(t-geo.depth[j])<=1e-7)geo.coverage[j]=Math.max(geo.coverage[j],alpha)}
+ geo.disk=(p,r,alpha=1)=>{
   const cx=p[0]*geo.sx,cy=p[1]*geo.sy;
   for(let y=Math.max(0,Math.floor(cy-r*geo.sy));y<=Math.min(H-1,Math.ceil(cy+r*geo.sy));y++)
-   for(let x=Math.max(0,Math.floor(cx-r*geo.sx));x<=Math.min(W-1,Math.ceil(cx+r*geo.sx));x++)if(((x+.5-cx)/geo.sx)**2+((y+.5-cy)/geo.sy)**2<=r*r)pixel(x,y,p[2],rgb,alpha);
+   for(let x=Math.max(0,Math.floor(cx-r*geo.sx));x<=Math.min(W-1,Math.ceil(cx+r*geo.sx));x++)if(((x+.5-cx)/geo.sx)**2+((y+.5-cy)/geo.sy)**2<=r*r)pixel(x,y,p[2],alpha);
  };
- geo.segment=(a,b,rgb,width=2,alpha=1,gpu=true)=>{
+ geo.segment=(a,b,width=2,alpha=1,gpu=true)=>{
   if(!a.every(Number.isFinite)||!b.every(Number.isFinite)||!(alpha>0))return;
   const dx=b[0]-a[0],dy=b[1]-a[1],len=Math.hypot(dx,dy);if(len<.001||len>1e7)return;
   const half=Math.max(.65,width)/2, feather=gpu?.85:0,outer=half+feather,lo=Math.max(0,half-feather),hi=half+feather;
@@ -3504,18 +3493,18 @@ function volumeGeometry(W,H){
    const px=(x+.5)/geo.sx-a[0],py=(y+.5)/geo.sy-a[1],u=(px*dx+py*dy)/(len*len);if(u<0||u>1)continue;
    const d=Math.abs(px*dy-py*dx)/len;if(d>=outer)continue;
    const q=gpu?Math.max(0,Math.min(1,(d-lo)/(hi-lo))):0,coverage=1-q*q*(3-2*q);
-   if(coverage>=.002)pixel(x,y,mode==='3d'?1/((1-u)/a[2]+u/b[2]):a[2]+u*(b[2]-a[2]),rgb,alpha*coverage);
+   if(coverage>=.002)pixel(x,y,mode==='3d'?1/((1-u)/a[2]+u/b[2]):a[2]+u*(b[2]-a[2]),alpha*coverage);
   }
  };
  geo.glyph=mask=>{
-  const {x,y,w,h,r,rgba,depth,color}=mask;
+  const {x,y,w,h,r,rgba,depth}=mask;
   for(let py=Math.max(0,Math.floor(y*geo.sy));py<Math.min(H,Math.ceil((y+h/r)*geo.sy));py++)for(let px=Math.max(0,Math.floor(x*geo.sx));px<Math.min(W,Math.ceil((x+w/r)*geo.sx));px++){
    const tx=Math.floor(((px+.5)/geo.sx-x)*r),ty=Math.floor(((py+.5)/geo.sy-y)*r);
    if(tx<0||tx>=w||ty<0||ty>=h)continue;
-   const alpha=rgba[4*(ty*w+tx)+3]/255;if(alpha>0)pixel(px,py,depth,color,alpha);
+   const alpha=rgba[4*(ty*w+tx)+3]/255;if(alpha>0)pixel(px,py,depth,alpha);
   }
  };
- geo.triangle=(a,b,c,rgb,alpha=1)=>{
+ geo.triangle=(a,b,c,alpha=1)=>{
   const p=[a,b,c].map(t=>[t[0]*geo.sx,t[1]*geo.sy,t[2]]),[A,B,C]=p;
   const signed=(B[1]-C[1])*(A[0]-C[0])+(C[0]-B[0])*(A[1]-C[1]);
   if(Math.abs(signed)<1e-9)return;
@@ -3524,53 +3513,43 @@ function volumeGeometry(W,H){
   for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
    const px=x+.5,py=y+.5,w0=((B[1]-C[1])*(px-C[0])+(C[0]-B[0])*(py-C[1]))/signed,
    w1=((C[1]-A[1])*(px-C[0])+(A[0]-C[0])*(py-C[1]))/signed,w2=1-w0-w1;
-   if(w0>=-1e-6&&w1>=-1e-6&&w2>=-1e-6)pixel(x,y,mode==='3d'?1/(w0/A[2]+w1/B[2]+w2/C[2]):w0*A[2]+w1*B[2]+w2*C[2],rgb,alpha)
+   if(w0>=-1e-6&&w1>=-1e-6&&w2>=-1e-6)pixel(x,y,mode==='3d'?1/(w0/A[2]+w1/B[2]+w2/C[2]):w0*A[2]+w1*B[2]+w2*C[2],alpha)
   }
  };
  return geo;
 }
-function paintVolumeGeometry(plottable,geo,includeLabels=true){
+function paintVolumeGeometry(plottable,geo,projectedSurfaces,includeLabels=true){
  const X=bounds('x'),Y=bounds('y'),Z=bounds('z');
  for(const {entry:e,kind} of plottable){try{
-  const rgb=hexRgb(e.color),opacity=entryAlpha(e);if(opacity<=0)continue;
+  const opacity=entryAlpha(e);if(opacity<=0)continue;
   if(kind==='surface'||kind==='scalar2'){
-   const ast=checkVariables(compiled(e.text)),N=quality,dx=(X[1]-X[0])/N,dy=(Y[1]-Y[0])/N,mesh=[];
-   for(let j=0;j<=N;j++){
-    const y=Y[0]+dy*j,row=[];
-    for(let i=0;i<=N;i++){
-     let x=X[0]+dx*i,z=bounded(ast,{x,y,z:0,t:frameTime},1e20);
-     row.push(Number.isFinite(z)?[x,y,z]:null)
-    }
-    mesh.push(row)
-   }
-   for(let j=0;j<N;j++)for(let i=0;i<N;i++){
-    const [a,b,c,d]=[mesh[j][i],mesh[j][i+1],mesh[j+1][i+1],mesh[j+1][i]];
-    if(!a||!b||!c||!d)continue;
-    const shade=.88+.06*Math.cos((i+j)*.19),tone=rgb.map(n=>Math.min(255,Math.round(n*shade)));
-    let polygon=clipSurfacePolygon([a,b,c,d],Z[0],Z[1]);if(e._vgDomain)polygon=vgClipPolygon(polygon,e._vgDomain);polygon=polygon.map(p=>project3(...p));
-    for(let m=1;m<polygon.length-1;m++)geo.triangle(polygon[0],polygon[m],polygon[m+1],tone,.87*opacity)
-   }
+   const rasterize=p=>{
+    for(let m=1;m<p.length-1;m++)geo.triangle(p[0],p[m],p[m+1],.87*opacity);
+   };
+   const polygons=projectedSurfaces.get(e);
+   if(polygons)for(const {p} of polygons)rasterize(p);
+   else forEachProjectedSurfacePolygon(e,rasterize);
   }
   if(canExtend3D(kind)&&kind!=='field2'&&extends3D(e)){
    for(const quad of extruded2DPolygons(e,kind)){
-    const p=quad.map(v=>project3(...v));geo.triangle(p[0],p[1],p[2],rgb,.86*opacity);geo.triangle(p[0],p[2],p[3],rgb,.86*opacity);
+    const p=quad.map(v=>project3(...v));geo.triangle(p[0],p[1],p[2],.86*opacity);geo.triangle(p[0],p[2],p[3],.86*opacity);
    }
   }
   if(kind==='implicit3'||kind==='inequality3'||kind==='inequality2'){
    const region=kind.startsWith('inequality')?vgRegion(e.text):undefined;
-   for(const tri of implicitSurfaceTriangles(e,region)){const p=tri.map(v=>project3(...v));geo.triangle(p[0],p[1],p[2],rgb,kind.startsWith('inequality')?.35*opacity:opacity)}
+   for(const tri of implicitSurfaceTriangles(e,region)){const p=tri.map(v=>project3(...v));geo.triangle(p[0],p[1],p[2],kind.startsWith('inequality')?.35*opacity:opacity)}
   }
-  if(kind==='point'){const p=pointFromExpression(e);if(p&&p.coord.every((v,i)=>v>=[X,Y,Z][i][0]&&v<=[X,Y,Z][i][1]))geo.disk(project3(...p.coord),rgb,8,opacity);}
+  if(kind==='point'){const p=pointFromExpression(e);if(p&&p.coord.every((v,i)=>v>=[X,Y,Z][i][0]&&v<=[X,Y,Z][i][1]))geo.disk(project3(...p.coord),8,opacity);}
   if(kind==='curve3'||kind==='curve2'){
-   for(const [a,b] of curveSegments(e,true))geo.segment(a,b,rgb,2.7,opacity,renderModes.lines==='gpu'&&!gpuGeometry.failed);
+   for(const [a,b] of curveSegments(e,true))geo.segment(a,b,2.7,opacity,renderModes.lines==='gpu'&&!gpuGeometry.failed);
   }
   if(['vector3','vector2','field3','field2'].includes(kind)){
    const field=kind.startsWith('field');
    for(const [a0,b0] of vectorArrows(e,true,field,kind==='field2')){
     const a=project3(...a0),b=project3(...b0);
     const width=field?1.6:3,gpu=renderModes.vectors==='gpu'&&!gpuGeometry.failed;
-    for(const [p,q] of arrowSegments(a,b,width))geo.segment(p,q,rgb,width,opacity,gpu);
-    if(!field)geo.disk(a,rgb,3,opacity);
+    for(const [p,q] of arrowSegments(a,b,width))geo.segment(p,q,width,opacity,gpu);
+    if(!field)geo.disk(a,3,opacity);
    }
 
   }
@@ -3578,28 +3557,10 @@ function paintVolumeGeometry(plottable,geo,includeLabels=true){
  if(includeLabels)for(const mask of vgAxisLabelMasks)geo.glyph(mask);
  return geo;
 }
-function drawHighResSolids(plottable){
- const W=Math.max(80,Math.round(CW)),H=Math.max(80,Math.round(CH));
- const solids=plottable.filter(a=>['surface','scalar2','implicit3','func2','implicit2','curve3','curve2','vector3','vector2','field3','field2'].includes(a.kind));
- ctx.fillStyle='#fff';ctx.fillRect(0,0,CW,CH);
- if(!solids.length)return;
- const geo=paintVolumeGeometry(solids,volumeGeometry(W,H));
- const off=document.createElement('canvas');off.width=W;off.height=H;
- const out=off.getContext('2d');const img=out.createImageData(W,H);
- for(let i=0;i<W*H;i++){
-  const solid=Number.isFinite(geo.depth[i]),j=4*i,k=3*i;
-  img.data[j]=solid?geo.color[k]:255;
-  img.data[j+1]=solid?geo.color[k+1]:255;
-  img.data[j+2]=solid?geo.color[k+2]:255;
-  img.data[j+3]=255;
- }
- out.putImageData(img,0,0);ctx.drawImage(off,0,0,CW,CH);
-}
-
-function drawVolumeSceneCPU(plottable){
+function drawVolumeSceneCPU(plottable,projectedSurfaces){
  // Adaptive framebuffer keeps navigation responsive while still compositing real pixels.
  const ratio=Math.min(1,Math.sqrt(135000/(CW*CH))),W=Math.max(80,Math.round(CW*ratio)),H=Math.max(80,Math.round(CH*ratio));
- const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H)),volumes=[];
+ const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H),projectedSurfaces),volumes=[];
  const xyzBounds=['x','y','z'].map(a=>bounds(a));
  for(const {entry:e,kind} of plottable){
   if(kind!=='cloud3')continue;
@@ -3672,7 +3633,7 @@ function drawVolumeSceneCPU(plottable){
 // Real WebGL 2 fragment-shader ray marcher. The existing safe expression AST is
 // compiled to GLSL (never eval'd), while ordinary surfaces/vectors generate a
 // depth/color texture for correct front-to-back volume compositing.
-const gpuRenderer={canvas:null,gl:null,program:null,key:'',uniforms:null,error:''};
+const gpuRenderer={canvas:null,gl:null,program:null,key:'',uniforms:null,error:'',depthUpload:null,depthWidth:0,depthHeight:0};
 function gpuNumber(n){if(!Number.isFinite(n))throw Error('Non-finite shader constant');if(n===0)return '0.0';let x=Number(n).toPrecision(10);return x.includes('.')||/[eE]/.test(x)?x:x+'.0'}
 function glslExpression(ast,params){
  if(ast.k==='n')return gpuNumber(ast.v);
@@ -3796,8 +3757,7 @@ function installGPUProgram(volumes){
     nearT=max(nearT,min(a,b));farT=min(farT,max(a,b));}
   }
   if(farT<=nearT)hit=false;
-  vec2 geo=texelFetch(uDepthTex,ivec2(pixel.x,screenY),0).rg;
-  float geoDepth=geo.r,occlusion=geo.g;
+  float geoDepth=texelFetch(uDepthTex,ivec2(pixel.x,screenY),0).r;
   // Integrate the full ray and its foreground part; composite with actual scene alpha.
   float T=1.0,frontAlpha=0.0;
   vec3 rgb=vec3(0.0),frontRGB=vec3(0.0);
@@ -3846,7 +3806,7 @@ function installGPUProgram(volumes){
 }
 function drawEmptyVolumeScene(plottable){return 0;} // Exact no-op: zero-valued volumes cannot alter pixels.
 
-function drawVolumeSceneGPU(plottable){
+function drawVolumeSceneGPU(plottable,projectedSurfaces){
  const gl=ensureGPU(),g=gpuRenderer;
  // Match the physical display resolution for crisp vector/surface depth edges.
  // Cap the framebuffer so very large / HiDPI monitors remain responsive.
@@ -3864,14 +3824,17 @@ function drawVolumeSceneGPU(plottable){
  if(!volumes.length)return drawEmptyVolumeScene(plottable);
  if(volumes.length>8)throw Error('GPU renderer supports up to eight simultaneous volumes');
  installGPUProgram(volumes);
- const geo=paintVolumeGeometry(plottable,volumeGeometry(W,H));
- const depth=new Float32Array(W*H*2);
- for(let i=0;i<W*H;i++){depth[2*i]=Number.isFinite(geo.depth[i])?geo.depth[i]:1e20;depth[2*i+1]=geo.coverage[i];}
+ if(g.depthUpload?.length!==W*H)g.depthUpload=new Float32Array(W*H);
+ const depth=g.depthUpload;
+ paintVolumeGeometry(plottable,volumeGeometry(W,H,depth),projectedSurfaces);
+ for(let i=0;i<depth.length;i++)if(!Number.isFinite(depth[i]))depth[i]=1e20;
  if(g.canvas.width!==W||g.canvas.height!==H){g.canvas.width=W;g.canvas.height=H;}
  gl.viewport(0,0,W,H);gl.useProgram(g.program);gl.bindVertexArray(g.vao);
  gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,g.depthTex);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
- gl.texImage2D(gl.TEXTURE_2D,0,gl.RG32F,W,H,0,gl.RG,gl.FLOAT,depth);
+ const resizeDepth=g.depthWidth!==W||g.depthHeight!==H;
+ if(resizeDepth)gl.texImage2D(gl.TEXTURE_2D,0,gl.R32F,W,H,0,gl.RED,gl.FLOAT,depth);
+ else gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,W,H,gl.RED,gl.FLOAT,depth);
  gl.activeTexture(gl.TEXTURE1);gl.bindTexture(gl.TEXTURE_2D,g.colorTex);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
@@ -3893,17 +3856,18 @@ function drawVolumeSceneGPU(plottable){
  for(const [name,u] of g.params)gl.uniform1f(U[u],scalarVals[name]);
  gl.drawArrays(gl.TRIANGLES,0,3);gl.flush();
  const error=gl.getError();if(error!==gl.NO_ERROR)throw Error('WebGL 2 error 0x'+error.toString(16));
+ if(resizeDepth){g.depthWidth=W;g.depthHeight=H;}
  ctx.save();ctx.clearRect(0,0,CW,CH);ctx.imageSmoothingEnabled=true;ctx.drawImage(g.canvas,0,0,CW,CH);ctx.restore();
  return Math.max(0,...volumes.map(v=>v.max));
 }
-function drawVolumeScene(plottable){
+function drawVolumeScene(plottable,projectedSurfaces){
  const clouds=plottable.filter(q=>q.kind==='cloud3');
  if(clouds.length&&clouds.every(q=>{try{const v=constantFieldValue(compiled(q.entry.text));return v===0}catch{return false}})){
   gpuStatus='Zero volume (skipped)';return drawEmptyVolumeScene(plottable);
  }
- try{if(renderModes.volume==='cpu'||clouds.some(q=>q.entry._vgDomain))throw Error('CPU volume required for restrictions');const r=drawVolumeSceneGPU(plottable);gpuStatus='WebGL 2 volume';return r}
+ try{if(renderModes.volume==='cpu'||clouds.some(q=>q.entry._vgDomain))throw Error('CPU volume required for restrictions');const r=drawVolumeSceneGPU(plottable,projectedSurfaces);gpuStatus='WebGL 2 volume';return r}
  catch(e){gpuStatus=renderModes.volume==='cpu'?'CPU volume':'CPU volume fallback';if(!gpuRenderer.reported||gpuRenderer.reported!==e.message){console.warn('WebGL 2 fallback:',e.message);gpuRenderer.reported=e.message;}
-  return drawVolumeSceneCPU(plottable)}
+  return drawVolumeSceneCPU(plottable,projectedSurfaces)}
 }
 
 
@@ -4108,8 +4072,13 @@ function draw(){
   gpuStatus='';
   withGPU('axes',draw3Axes);
   let renderables=[];
+  const hasVolume=plottable.some(q=>q.kind==='cloud3');
+  const labelsOnGPU=vgCanUseGPULabels(plottable);
+  const labelsOnCPU=!labelsOnGPU&&(axesOn||axisNumbersOn);
+  // Retain projected surfaces only when a software occlusion pass can use them.
+  const projectedSurfaces=hasVolume||(labelsOnCPU&&vgAxisLabels.length)?new Map():null;
   for(let {entry:e,kind} of plottable){try{
-   if(kind==='surface'||kind==='scalar2')drawSurface(e,renderables);
+   if(kind==='surface'||kind==='scalar2')drawSurface(e,renderables,projectedSurfaces);
    else if((kind==='func2'||kind==='implicit2')&&extends3D(e))drawExtruded2D(e,kind,renderables);
    else if(kind==='implicit3')drawImplicit3(e,renderables);else if(kind==='inequality3'||kind==='inequality2')drawInequality3(e,renderables);
   }catch(ex){console.debug('Surface skipped:',ex.message)}}
@@ -4123,13 +4092,11 @@ function draw(){
    else if(kind==='point')withGPU('points',()=>drawPointMarker(e,true));
   }catch(ex){console.debug('Object skipped:',ex.message)}}
   // Geometry is fully resolved before volume compositing; a zero volume adds no pixels.
-  const hasVolume=plottable.some(q=>q.kind==='cloud3');
-  const labelsOnGPU=vgCanUseGPULabels(plottable);
   if(labelsOnGPU)vgQueueAxisLabelsGPU(hasVolume);
   gpuGeometry.present();
-  if(!labelsOnGPU&&(axesOn||axisNumbersOn))vgPaintAxisLabelsCPU(plottable);
+  if(labelsOnCPU)vgPaintAxisLabelsCPU(plottable,projectedSurfaces);
   if(hasVolume){
-   legendRange=drawVolumeScene(plottable);
+   legendRange=drawVolumeScene(plottable,projectedSurfaces);
    legend=legendRange>1e-12;
   }
  }
