@@ -504,6 +504,8 @@ body.dark-ui select,body.dark-ui .graph-settings-menu select,body.dark-ui .expre
 
 </div>
 <div class="scroll">
+<p id="vgSaveWarning" class="notice" role="status" aria-live="polite" hidden></p>
+<p id="vgRenderWarning" class="notice" role="status" aria-live="polite" hidden></p>
 <section class="section constants-section"><div class="sectiontitle"><h2>Constants</h2><div class="vg-section-actions"><button class="btn ghost vg-clear" id="clearConstants" type="button" title="Clear constants">Clear</button><button class="btn ghost" id="addConstants" type="button" aria-label="Add constant" title="Add constant">+</button></div></div>
 <div aria-label="Compact constant expressions" id="constants"></div></section>
 <section class="section expression-section">
@@ -849,8 +851,14 @@ l0,-`+(t+144)+`c-2,-159.3,-10,-310.7,-24,-454c-53.3,-528,-210,-949.7,
 
 'use strict';
 // A tiny expression language: no eval(), no external libraries, all offline.
+// Real nth roots: negative radicands require an odd integer degree.
+function vgRealRoot(x,n){
+ if(!Number.isFinite(n)||n===0||Number.isNaN(x)||x===0&&n<0)return NaN;
+ if(x<0)return Number.isInteger(n)&&Math.abs(n%2)===1?-Math.pow(-x,1/n):NaN;
+ return Math.pow(x,1/n);
+}
 function cardinalTrig(x,kind){const q=Math.round(x/(Math.PI/2));if(Number.isFinite(x)&&Math.abs(q)<=1000000&&x===q*(Math.PI/2)){const i=((q%4)+4)%4;return (kind==='sin'?[0,1,0,-1]:[1,0,-1,0])[i]}return Math[kind](x)}
-const FUN={sin:x=>cardinalTrig(x,'sin'),cos:x=>cardinalTrig(x,'cos'),tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan,sinh:Math.sinh,cosh:Math.cosh,tanh:Math.tanh,asinh:Math.asinh,acosh:Math.acosh,atanh:Math.atanh,sqrt:Math.sqrt,abs:Math.abs,exp:Math.exp,ln:Math.log,log:Math.log,log10:Math.log10,floor:Math.floor,ceil:Math.ceil,round:Math.round,sign:Math.sign,atan2:Math.atan2,min:Math.min,max:Math.max,pow:Math.pow,sec:x=>1/Math.cos(x),csc:x=>1/Math.sin(x),cot:x=>1/Math.tan(x),mod:(a,b)=>((a%b)+Math.abs(b))%Math.abs(b),clamp:(v,a,b)=>Math.min(Math.max(v,a),b),hypot:Math.hypot,logb:(x,b)=>Math.log(x)/Math.log(b),root:(x,n)=>Math.sign(x)*Math.pow(Math.abs(x),1/n),factorial:n=>{if(n<0||!Number.isInteger(n)||n>170)return NaN;let r=1;for(let i=2;i<=n;i++)r*=i;return r},sinc:x=>x===0?1:Math.sin(x)/x};
+const FUN={sin:x=>cardinalTrig(x,'sin'),cos:x=>cardinalTrig(x,'cos'),tan:Math.tan,asin:Math.asin,acos:Math.acos,atan:Math.atan,sinh:Math.sinh,cosh:Math.cosh,tanh:Math.tanh,asinh:Math.asinh,acosh:Math.acosh,atanh:Math.atanh,sqrt:Math.sqrt,abs:Math.abs,exp:Math.exp,ln:Math.log,log:Math.log,log10:Math.log10,floor:Math.floor,ceil:Math.ceil,round:Math.round,sign:Math.sign,atan2:Math.atan2,min:Math.min,max:Math.max,pow:Math.pow,sec:x=>1/Math.cos(x),csc:x=>1/Math.sin(x),cot:x=>1/Math.tan(x),mod:(a,b)=>((a%b)+Math.abs(b))%Math.abs(b),clamp:(v,a,b)=>Math.min(Math.max(v,a),b),hypot:Math.hypot,logb:(x,b)=>Math.log(x)/Math.log(b),root:vgRealRoot,factorial:n=>{if(n<0||!Number.isInteger(n)||n>170)return NaN;let r=1;for(let i=2;i<=n;i++)r*=i;return r},sinc:x=>x===0?1:Math.sin(x)/x};
 const c=v=>({k:'n',v}), v=s=>({k:'v',s}), op=(s,a,b)=>({k:'o',s,a,b}), call=(s,...args)=>({k:'f',s,args});
 let scalarDefs=new Map(),scalarVals=Object.create(null),vectorDefs=new Map(),hatVectorDefs=new Map(),pointDefs=new Map(),userFunctions=new Map(),frameTime=0,cloudAppearance='density',cloudOpacity=.76,cloudThreshold=0,vectorLengthScale=1,fieldLengthMode='actual',fieldGridMode='box',fieldDensity=6,fieldFixedFraction=.14,fieldRelativeFraction=.22;
 let constants=[],cubeSize=.285,cameraDistance=9,sidebarWidth=410,sidebarCollapsed=false,settingBindings=Object.create(null),positiveColor='#e95747',negativeColor='#2874c1',drawnPointHits=[],selectedPointId=null,hoveredPointId=null;
@@ -1077,6 +1085,7 @@ function storeVectorDefinition(def){
  else vectorDefs.set(def.name,def);
 }
 function vgVectorDefinition(name){return name.startsWith('vghat_')?hatVectorDefs.get(name.slice(6)):vectorDefs.get(name)}
+let vgDefinitionSignature=null;
 function rebuildDefinitions(){
  scalarDefs=new Map();vectorDefs=new Map();hatVectorDefs=new Map();pointDefs=new Map();userFunctions=new Map();scalarVals=Object.create(null);
  const fixedOrigin={name:'O',args:[],rhs:'(0,0,0)',kind:'constant',id:null};pointDefs.set('O',fixedOrigin);vectorDefs.set('O',fixedOrigin);
@@ -1104,7 +1113,13 @@ function rebuildDefinitions(){
   }finally{resolving.delete(n)}
  };
  for(let n of scalarDefs.keys())try{get(n)}catch(e){scalarVals[n]=NaN}
- plotCache.clear();vgDomainCache.clear();try{curveEvaluatorCache.clear();implicitMeshCache.clear()}catch{}
+ // Parsed expressions depend on identifier names and expanded definitions.
+ // Unrelated edits do not invalidate every cached graph.
+ const signature=JSON.stringify([scalarDefs,vectorDefs,hatVectorDefs,pointDefs,userFunctions].map(m=>[...m].map(([k,d])=>[k,d.args,d.rhs,d.accent])));
+ if(signature!==vgDefinitionSignature){
+  vgDefinitionSignature=signature;plotCache.clear();vgDomainCache.clear();vgKindCache.clear();
+  try{curveEvaluatorCache.clear();implicitMeshCache.clear()}catch{}
+ }
 }
 
 function tokenize(input){const raw=[];let i=0;while(i<input.length){if(/\s/.test(input[i])){i++;continue}const frag=input.slice(i);const m=frag.match(/^(?:((?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)|([a-zA-Z_][a-zA-Z_0-9]*)|([+*\/^(),!-]))/);if(!m)throw Error('Unexpected character at position '+(i+1)+': '+input[i]);raw.push(m[1]?{t:'n',v:Number(m[1])}:m[2]?{t:'name',v:m[2]}:{t:m[3],v:m[3]});i+=m[0].length}
@@ -1172,8 +1187,28 @@ function parse(input){const t=tokenize(input),i={n:0};const peek=()=>t[i.n].t, t
  return userFunctions.has(name)?expandFunction(name,args):call(name,...args)}return v(name)}if(peek()==='('){take('(');const a=expr();take(')');return a}throw Error('Expected number, variable or function')}
  function power(){let a=primary();while(peek()==='!'){take('!');a=call('factorial',a)}if(peek()==='^'){take('^');a=op('^',a,unary())}return a}function unary(){if(peek()==='-'){take('-');return op('*',c(-1),unary())}if(peek()==='+'){take('+');return unary()}return power()}function mul(){let a=unary();while(peek()==='*'||peek()==='/'){let s=t[i.n++].t;a=op(s,a,unary())}return a}function expr(){let a=mul();while(peek()==='+'||peek()==='-'){let s=t[i.n++].t;a=op(s,a,mul())}return a}const ast=expr();if(peek()!=='end')throw Error('Unexpected token: '+peek());return ast}
 function evaluate(a,p){switch(a.k){case'n':return a.v;case'v':return Object.prototype.hasOwnProperty.call(p,a.s)?p[a.s]:Object.prototype.hasOwnProperty.call(scalarVals,a.s)?scalarVals[a.s]:a.s==='infinity'?Infinity:a.s==='pi'?Math.PI:a.s==='e'?Math.E:a.s==='tau'?2*Math.PI:a.s==='phi'?(1+Math.sqrt(5))/2:NaN;case'o':{let x=evaluate(a.a,p),y=evaluate(a.b,p);return a.s==='+'?x+y:a.s==='-'?x-y:a.s==='*'?x*y:a.s==='/'?x/y:Math.pow(x,y)}case'f':return FUN[a.s](...a.args.map(n=>evaluate(n,p)));case'divergence':case'integral':case'sum':case'product':case'limit':case'matrix':case'jacobian':case'dotvector':case'magnitude':case'directional':case'doubleintegral':return evaluateScalarCalculus(a,p)}}
-function simplify(a){if(a.k==='o'){let A=simplify(a.a),B=simplify(a.b),s=a.s;if(A.k==='n'&&B.k==='n'){let val=evaluate(op(s,A,B),{});if(Number.isFinite(val))return c(Number(val.toPrecision(12)))}const z=x=>x.k==='n'&&x.v===0,one=x=>x.k==='n'&&x.v===1;if(s==='+'&&z(A))return B;if(s==='+'&&z(B))return A;if(s==='-'&&z(B))return A;if(s==='-'&&z(A))return simplify(op('*',c(-1),B));if(s==='*'&&(z(A)||z(B)))return c(0);if(s==='*'&&one(A))return B;if(s==='*'&&one(B))return A;if(s==='/'&&z(A))return c(0);if(s==='/'&&one(B))return A;if(s==='^'&&one(B))return A;if(s==='^'&&z(B))return c(1);if(s==='^'&&one(A))return c(1);return op(s,A,B)}if(a.k==='f')return call(a.s,...a.args.map(simplify));return a}
-function derive(a,w){if(a.k==='n')return c(0);if(a.k==='v')return c(a.s===w?1:0);if(a.k==='o'){let {s,a:A,b:B}=a,D=derive(A,w),E=derive(B,w);if(s==='+'||s==='-')return simplify(op(s,D,E));if(s==='*')return simplify(op('+',op('*',D,B),op('*',A,E)));if(s==='/')return simplify(op('/',op('-',op('*',D,B),op('*',A,E)),op('^',B,c(2))));if(s==='^'){if(B.k==='n')return simplify(op('*',op('*',B,op('^',A,c(B.v-1))),D));return simplify(op('*',op('^',A,B),op('+',op('*',E,call('ln',A)),op('*',B,op('/',D,A)))))} }if(a.k==='f'){let A=a.args[0],D=derive(A,w),fn=a.s;let f=fn==='sin'?call('cos',A):fn==='cos'?op('*',c(-1),call('sin',A)):fn==='tan'?op('/',c(1),op('^',call('cos',A),c(2))):fn==='exp'?call('exp',A):['ln','log'].includes(fn)?op('/',c(1),A):fn==='log10'?op('/',c(1),op('*',A,c(Math.LN10))):fn==='sqrt'?op('/',c(1),op('*',c(2),call('sqrt',A))):fn==='abs'?call('sign',A):fn==='asin'?op('/',c(1),call('sqrt',op('-',c(1),op('^',A,c(2))))):fn==='acos'?op('/',c(-1),call('sqrt',op('-',c(1),op('^',A,c(2))))):fn==='atan'?op('/',c(1),op('+',c(1),op('^',A,c(2)))):fn==='sinh'?call('cosh',A):fn==='cosh'?call('sinh',A):fn==='tanh'?op('/',c(1),op('^',call('cosh',A),c(2))):fn==='sec'?op('*',call('sec',A),call('tan',A)):fn==='csc'?op('*',c(-1),op('*',call('csc',A),call('cot',A))):fn==='cot'?op('*',c(-1),op('^',call('csc',A),c(2))):null;if(f)return simplify(op('*',f,D));throw Error('Symbolic derivative not supported for '+fn+'(). Try sin, cos, exp, ln, sqrt and standard functions.')}throw Error('Cannot differentiate expression')}
+// Only erase operands when their real-domain validity is known.
+function vgTotalReal(a){
+ if(a.k==='n')return Number.isFinite(a.v);
+ if(a.k==='v')return ['x','y','z','t','pi','e','tau','phi'].includes(a.s);
+ if(a.k==='o'){
+  if(['+','-','*'].includes(a.s))return vgTotalReal(a.a)&&vgTotalReal(a.b);
+  if(a.s==='/')return vgTotalReal(a.a)&&a.b.k==='n'&&Number.isFinite(a.b.v)&&a.b.v!==0;
+  if(a.s==='^')return vgTotalReal(a.a)&&a.b.k==='n'&&Number.isInteger(a.b.v)&&a.b.v>=0;
+ }
+ return a.k==='f'&&['sin','cos','abs','sign','floor','ceil','round','atan'].includes(a.s)&&a.args.length===1&&vgTotalReal(a.args[0]);
+}
+function simplify(a){if(a.k==='o'){let A=simplify(a.a),B=simplify(a.b),s=a.s;if(A.k==='n'&&B.k==='n'){let val=evaluate(op(s,A,B),{});if(Number.isFinite(val)&&!(s==='^'&&A.v===0&&B.v===0))return c(val)}const z=x=>x.k==='n'&&x.v===0,one=x=>x.k==='n'&&x.v===1;if(s==='+'&&z(A))return B;if(s==='+'&&z(B))return A;if(s==='-'&&z(B))return A;if(s==='-'&&z(A))return simplify(op('*',c(-1),B));if(s==='*'&&((z(A)&&vgTotalReal(B))||(z(B)&&vgTotalReal(A))))return c(0);if(s==='*'&&one(A))return B;if(s==='*'&&one(B))return A;if(s==='/'&&one(B))return A;if(s==='^'&&one(B))return A;if(s==='^'&&z(B)&&vgTotalReal(A))return c(1);if(s==='^'&&one(A)&&vgTotalReal(B))return c(1);return op(s,A,B)}if(a.k==='f')return call(a.s,...a.args.map(simplify));return a}
+function derive(a,w){if(a.k==='n')return c(0);if(a.k==='v')return c(a.s===w?1:0);if(a.k==='o'){let {s,a:A,b:B}=a,D=derive(A,w),E=derive(B,w);if(s==='+'||s==='-')return simplify(op(s,D,E));if(s==='*')return simplify(op('+',op('*',D,B),op('*',A,E)));if(s==='/')return simplify(op('/',op('-',op('*',D,B),op('*',A,E)),op('^',B,c(2))));if(s==='^'){if(B.k==='n')return simplify(op('*',op('*',B,op('^',A,c(B.v-1))),D));return simplify(op('*',op('^',A,B),op('+',op('*',E,call('ln',A)),op('*',B,op('/',D,A)))))} }if(a.k==='f'){let A=a.args[0],D=derive(A,w),fn=a.s;
+ if(fn==='root'){
+  const degree=a.args[1];if(!degree)throw Error('root expects two arguments');
+  if(degree.k==='n'&&Number.isFinite(degree.v)&&degree.v!==0){
+   if(degree.v===1)return D;
+   return simplify(op('*',op('*',c(1/degree.v),op('^',call('root',A,degree),c(1-degree.v))),D));
+  }
+  return derive(op('^',A,op('/',c(1),degree)),w);
+ }
+ let f=fn==='sin'?call('cos',A):fn==='cos'?op('*',c(-1),call('sin',A)):fn==='tan'?op('/',c(1),op('^',call('cos',A),c(2))):fn==='exp'?call('exp',A):['ln','log'].includes(fn)?op('/',c(1),A):fn==='log10'?op('/',c(1),op('*',A,c(Math.LN10))):fn==='sqrt'?op('/',c(1),op('*',c(2),call('sqrt',A))):fn==='abs'?call('sign',A):fn==='asin'?op('/',c(1),call('sqrt',op('-',c(1),op('^',A,c(2))))):fn==='acos'?op('/',c(-1),call('sqrt',op('-',c(1),op('^',A,c(2))))):fn==='atan'?op('/',c(1),op('+',c(1),op('^',A,c(2)))):fn==='sinh'?call('cosh',A):fn==='cosh'?call('sinh',A):fn==='tanh'?op('/',c(1),op('^',call('cosh',A),c(2))):fn==='sec'?op('*',call('sec',A),call('tan',A)):fn==='csc'?op('*',c(-1),op('*',call('csc',A),call('cot',A))):fn==='cot'?op('*',c(-1),op('^',call('csc',A),c(2))):null;if(f)return simplify(op('*',f,D));throw Error('Symbolic derivative not supported for '+fn+'(). Try sin, cos, exp, ln, sqrt and standard functions.')}throw Error('Cannot differentiate expression')}
 function format(a){if(a.k==='n')return String(Number(a.v.toPrecision(10)));if(a.k==='v')return a.s;if(a.k==='f')return a.s+'('+a.args.map(format).join(', ')+')';return '('+format(a.a)+' '+a.s+' '+format(a.b)+')'}
 const colors=['#66cbff','#ffb968','#b18bff','#72d8bb','#fa83a9','#e4d27c','#8c9bff'];
 const $=id=>document.getElementById(id), canvas=$('graph'),ctx=canvas.getContext('2d');let mode='3d',axesOn=true,axisNumbersOn=true,gridLinesOn=true,expressions=[],nextId=1,quality=42,cloudDensity=18,showZeroSlice=true,span=6,scale=1,yaw=.6,pitch=.58,pan={x:0,y:0,z:0},drag=null,plotCache=new Map(),lastCalc=null,drawPending=false;let CW=800,CH=600,dpr=1;
@@ -1281,7 +1316,7 @@ function latexPlain(source){
    }
    if(cmd==='sqrt'){
      let index=undefined;if(s[i]==='['){index=readGroup(s,i,'[',']');i=index.end}
-     let rad=readGroup(s,i);out+=index?'(('+latexPlain(rad.value)+')^(1/('+latexPlain(index.value)+')))':'sqrt('+latexPlain(rad.value)+')';i=rad.end;continue;
+     let rad=readGroup(s,i);out+=index?'root('+latexPlain(rad.value)+','+latexPlain(index.value)+')':'sqrt('+latexPlain(rad.value)+')';i=rad.end;continue;
    }
    const special={pi:'pi',tau:'tau',phi:'phi',theta:'theta',cdot:'*',times:'*',div:'/',exp:'exp',ln:'ln',log:'log',sin:'sin',cos:'cos',tan:'tan',arcsin:'asin',arccos:'acos',arctan:'atan',sinh:'sinh',cosh:'cosh',tanh:'tanh',abs:'abs',min:'min',max:'max',floor:'floor',ceil:'ceil',sec:'sec',csc:'csc',cot:'cot',mod:'mod',operatorname:'',sinc:'sinc',arcsinh:'asinh',arccosh:'acosh',arctanh:'atanh'};
    if(Object.prototype.hasOwnProperty.call(special,cmd)&&special[cmd]){if(FUN[special[cmd]]&&/[a-zA-Z0-9)]$/.test(out))out+='*';out+=special[cmd];continue}
@@ -1752,8 +1787,9 @@ function inferKind(text){
   const lhs=s.slice(0,eq).trim(),rhs=s.slice(eq+1).trim();if(!rhs)throw Error('Enter a right-hand side after =');
   const vars=variableSet(checkVariables(parse('('+lhs+')-('+rhs+')')));
   if(vars.has('t'))throw Error('t is a curve parameter, not a spatial coordinate. Use a parametric vector function or a defined constant such as a.');
-  if(lhs==='y')return 'func2';
-  if(lhs==='z')return 'surface';
+  const rhsVars=variableSet(checkVariables(parse(rhs)));
+  if(lhs==='y'&&!rhsVars.has('y')&&!rhsVars.has('z'))return 'func2';
+  if(lhs==='z'&&!rhsVars.has('z'))return 'surface';
   return vars.has('z')?'implicit3':'implicit2';
  }
  const vars=variableSet(checkVariables(parse(s)));
@@ -1763,11 +1799,18 @@ function inferKind(text){
  if(vars.has('x')||vars.has('t'))return 'func2';
  return 'value';
 }
-function resolvedKind(entry){return inferKind(entry.text)}
+const vgKindCache=new Map();
+function resolvedKind(entry){
+ const key=entry.text;
+ if(vgKindCache.has(key))return vgKindCache.get(key);
+ const kind=inferKind(key);
+ if(vgKindCache.size>=512)vgKindCache.clear();
+ vgKindCache.set(key,kind);return kind;
+}
 // Graph meaning and presentation are independent: any spatially 2D relation can be
 // extruded along its unused third coordinate without changing its mathematical input.
 function canExtend3D(kind){return kind==='func2'||kind==='implicit2'||kind==='field2'}
-function extends3D(entry){if(entry.extend3d===false)return false;try{const kind=inferKind(entry.text);if(kind==='func2'&&variableSet(compiled(entry.text)).has('t'))return false;}catch{}return true;}
+function extends3D(entry){if(entry.extend3d===false)return false;try{const kind=resolvedKind(entry);if(kind==='func2'&&variableSet(compiled(entry.text)).has('t'))return false;}catch{}return true;}
 
 function numericExpression(text){
  const str=String(text??'').trim();if(!str)throw Error('Enter a number or defined constant');
@@ -2648,7 +2691,11 @@ function setupRenderControls(){
  advanced?.addEventListener('toggle',()=>{if(advanced.open)requestAnimationFrame(()=>{$('graphMenu').scrollTop=$('graphMenu').scrollHeight})});
 }
 function projectSnapshot(){return {expressions:expressions.map(({type,updateSlider,styleVisibility,styleLabel,...entry})=>entry),constants:constants.map(({updatePreview,updateSlider,styleVisibility,styleLabel,...entry})=>entry),cubeSize,cameraDistance,sidebarWidth,sidebarCollapsed,settingBindings,positiveColor,negativeColor,mode,span,quality,cloudDensity,showZeroSlice,cloudAppearance,cloudOpacity,cloudThreshold,frameTime,vectorLengthScale,fieldLengthMode,fieldGridMode,fieldFixedFraction,fieldRelativeFraction,view:{pan,scale,axisZoom,yaw,pitch},axesOn,axisNumbersOn,gridLinesOn,numberSettings,renderModes}}
-function save(){try{localStorage.setItem('vectorgraph-v1',JSON.stringify(projectSnapshot()))}catch{}}
+function save(){
+ const status=$('vgSaveWarning');
+ try{localStorage.setItem('vectorgraph-v1',JSON.stringify(projectSnapshot()));if(status)status.hidden=true;}
+ catch(ex){if(status){status.hidden=false;status.textContent='Autosave failed. Export a project file to preserve your work.';}console.warn('VectorGraph autosave failed:',ex.message);}
+}
 function initial(){try{const s=JSON.parse(localStorage.getItem('vectorgraph-v1'));if(s&&Array.isArray(s.expressions)){renderModes=Object.fromEntries(Object.keys(renderCategories).map(k=>[k,s.renderModes?.[k]==='cpu'?'cpu':'gpu']));expressions=s.expressions.map(({type,...entry})=>entry);constants=Array.isArray(s.constants)?s.constants.map(({type,...entry})=>entry):[];
  constants=constants.filter(e=>String(e.text||'').trim());
  nextId=Math.max(1,...expressions.map(e=>e.id+1),...constants.map(e=>e.id+1));
@@ -3201,8 +3248,80 @@ function drawInequality2(entry){
 }
 function drawInequality3(entry,arr){const region=vgRegion(entry.text);if(!region)return;const pattern=entry.boundaryPattern||'checker',alt=entry.boundaryColor||'#ffffff';for(const tri of implicitSurfaceTriangles(entry,region)){const center=[0,1,2].map(k=>tri.reduce((a,p)=>a+p[k],0)/3),strict=region.test(vgCoords(...center)).strict,p=tri.map(q=>project3(...q)),depth=p.reduce((a,q)=>a+q[2],0)/3;const stripe=Math.floor(center[0]*4)+Math.floor(center[1]*4)+Math.floor(center[2]*4),secondary=strict&&stripe%2===0;let fill=entryRGBA(entry,.22),stroke=null;if(strict&&pattern==='checker'){const rgb=hexRgb(alt);fill=secondary?`rgba(${rgb.join(',')},${.48*entryAlpha(entry)})`:entryRGBA(entry,.46);}if(strict&&pattern==='wireframe')stroke=alt;if(strict&&pattern==='dotted'&&secondary)arr.push({kind:'cloud',p:project3(...center),depth,fill:alt,r:1.7,alpha:.9});arr.push({kind:'polygon',p,depth,fill,stroke,iso:!stroke});}}
 function draw2Func(e){const ast=compiled(e.text),sample=x=>{const y=bounded(ast,{x,y:0,z:0,t:x},1e20);return {x,y,valid:Number.isFinite(y)&&vgAllows(e,vgCoords(x,y,0,x))}};let prev=null,last=null,ends=[];beginGraphPath();for(let i=0;i<=Math.ceil(CW/1.5);i++){const sx=i*1.5,x=pan.x+(sx-CW/2)/screenX(),now=sample(x);if(e._vgDomain&&last&&last.valid!==now.valid&&Number.isFinite(last.y)&&Number.isFinite(now.y)){let a=last.x,b=x;for(let k=0;k<24;k++){const m=(a+b)/2;if(sample(m).valid===last.valid)a=m;else b=m}const mid=sample((a+b)/2),q=project2(mid.x,mid.y),strict=e._vgDomain.test(vgCoords(mid.x,mid.y,0,mid.x)).strict;if(last.valid&&prev)lineGraphPath(...q);ends.push({q,strict});if(now.valid){moveGraphPath(...q);prev=q}else prev=null}last=now;if(!now.valid){prev=null;continue}const p=project2(x,now.y);if(!prev||Math.abs(p[1]-prev[1])>CH*1.5)moveGraphPath(...p);else lineGraphPath(...p);prev=p}strokeGraphPath(entryRGBA(e),vgLineWeight(e,2.5));for(const {q,strict} of ends){if(gpuCapture){gpuGeometry.disk(q,entryRGBA(e),4.2);if(strict)gpuGeometry.disk([q[0],q[1],(q[2]??.5)-.001],e.boundaryColor||'#ffffff',2.7)}else{ctx.save();ctx.beginPath();ctx.arc(q[0],q[1],3.7,0,2*Math.PI);ctx.fillStyle=strict?e.boundaryColor||'#ffffff':entryRGBA(e);ctx.fill();ctx.strokeStyle=entryRGBA(e);ctx.lineWidth=1.7;ctx.stroke();ctx.restore()}}}
-function zeroSetAST(ast){if(ast&&ast.k==='o'&&ast.s==='^'&&ast.b.k==='n'&&ast.b.v>0)return zeroSetAST(ast.a);if(ast&&ast.k==='o'&&ast.s==='/' )return zeroSetAST(ast.a);return ast}
-function drawImplicit2(e,kind='implicit2'){const ast=kind===''?zeroSetAST(compiled(e.text)):compiled(e.text,kind),N=130,Lx=(visible2DBounds('x')[1]-visible2DBounds('x')[0])*.53,Ly=(visible2DBounds('y')[1]-visible2DBounds('y')[0])*.53,x0=pan.x-Lx,y0=pan.y-Ly,dx=2*Lx/N,dy=2*Ly/N;let values=[];for(let j=0;j<=N;j++){let row=[];for(let i=0;i<=N;i++){let x=x0+i*dx,y=y0+j*dy;row.push(bounded(ast,{x,y,z:0,t:0},1e9))}values.push(row)}beginGraphPath();for(let j=0;j<N;j++)for(let i=0;i<N;i++){let x=x0+i*dx,y=y0+j*dy,f=[values[j][i],values[j][i+1],values[j+1][i+1],values[j+1][i]];if(f.some(a=>!Number.isFinite(a)))continue;let pts=[[x,y],[x+dx,y],[x+dx,y+dy],[x,y+dy]],edges=[[0,1],[1,2],[2,3],[3,0]],hits=[];for(let [u,v]of edges){if((f[u]<=0&&f[v]>=0)||(f[v]<=0&&f[u]>=0)){let denom=f[u]-f[v],t=Math.abs(denom)<1e-12?.5:f[u]/denom;if(t>=0&&t<=1){{const px=pts[u][0]+(pts[v][0]-pts[u][0])*t,py=pts[u][1]+(pts[v][1]-pts[u][1])*t;if(vgAllows(e,vgCoords(px,py)))hits.push(project2(px,py))}}}}for(let h=0;h+1<hits.length;h+=2){moveGraphPath(...hits[h]);lineGraphPath(...hits[h+1])}}strokeGraphPath(entryRGBA(e),vgLineWeight(e,2.4))}
+// Integer powers and quotients have the numerator's zero candidates,
+ // but the original expression must still be defined and zero there.
+function zeroSetAST(ast){
+ if(ast?.k==='o'){
+  if(ast.s==='^'&&ast.b.k==='n'&&Number.isInteger(ast.b.v)&&ast.b.v>0)return zeroSetAST(ast.a);
+  if(ast.s==='/')return zeroSetAST(ast.a);
+  if(ast.s==='-'&&ast.b.k==='n'&&ast.b.v===0)return zeroSetAST(ast.a);
+  if(ast.s==='-'&&ast.a.k==='n'&&ast.a.v===0)return op('*',c(-1),zeroSetAST(ast.b));
+ }
+ return ast;
+}
+// Refine a sign-changing edge; a jump or pole is not a zero.
+function vgEdgeZero(sample,A,B,fa,fb){
+ if(!Number.isFinite(fa)||!Number.isFinite(fb))return null;
+ if(fa===0&&fb===0)return null;
+ if(fa===0)return A;if(fb===0)return B;
+ if((fa<0)===(fb<0))return null;
+ const scale=Math.min(Math.abs(fa),Math.abs(fb));
+ let lo=0,hi=1,best=null,error=Infinity;
+ for(let i=0;i<18;i++){
+  const fraction=fa/(fa-fb);
+  const t=i%2===0&&Number.isFinite(fraction)&&fraction>0&&fraction<1?lo+(hi-lo)*fraction:(lo+hi)/2;
+  const p=A.map((a,j)=>a+(B[j]-a)*t),v=sample(p);
+  if(!Number.isFinite(v))return null;
+  if(Math.abs(v)<error){best=p;error=Math.abs(v);}
+  if(v===0||error<=scale*1e-7)return best;
+  if((v<0)===(fa<0)){lo=t;fa=v;}else{hi=t;fb=v;}
+ }
+ return error<=scale*.01?best:null;
+}
+function vgContourSampler(ast,coords){
+ const reduced=zeroSetAST(ast);
+ const original=p=>evaluate(ast,coords(p));
+ const sample=p=>{try{const value=original(p);return Number.isFinite(value)?evaluate(reduced,coords(p)):NaN;}catch{return NaN;}};
+ const root=(a,b,fa,fb)=>{
+  const p=vgEdgeZero(sample,a,b,fa,fb);if(!p)return null;
+  try{
+   const z=original(p);if(!Number.isFinite(z))return null;
+   if(z===0)return p;
+   const va=original(a),vb=original(b),scale=Math.min(Math.abs(va),Math.abs(vb));
+   return Number.isFinite(scale)&&Math.abs(z)<=scale*.01?p:null;
+  }catch{return null;}
+ };
+ return {sample,root};
+}
+function vgImplicitGrid(width,height,q){
+ const spacing=130/Math.max(28,Math.min(65,Number(q)||42));
+ return [width,height].map(v=>Math.max(48,Math.min(260,Math.ceil(v/spacing))));
+}
+function drawImplicit2(e,kind='implicit2'){
+ const ast=compiled(e.text,kind),[nx,ny]=vgImplicitGrid(CW,CH,quality);
+ const Lx=(visible2DBounds('x')[1]-visible2DBounds('x')[0])*.53,Ly=(visible2DBounds('y')[1]-visible2DBounds('y')[0])*.53;
+ const x0=pan.x-Lx,y0=pan.y-Ly,dx=2*Lx/nx,dy=2*Ly/ny;
+ const contour=vgContourSampler(ast,p=>vgCoords(p[0],p[1],0,frameTime));
+ const point=(i,j)=>[x0+i*dx,y0+j*dy];
+ const values=Array.from({length:ny+1},(_,j)=>Array.from({length:nx+1},(_,i)=>contour.sample(point(i,j))));
+ beginGraphPath();
+ for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+  const f=[values[j][i],values[j][i+1],values[j+1][i+1],values[j+1][i]];
+  if(f.some(a=>!Number.isFinite(a))||f.every(a=>a===0)||Math.min(...f)>0||Math.max(...f)<0)continue;
+  const pts=[point(i,j),point(i+1,j),point(i+1,j+1),point(i,j+1)],hits=[];
+  for(const [u,v] of [[0,1],[1,2],[2,3],[3,0]]){
+   const p=contour.root(pts[u],pts[v],f[u],f[v]);
+   if(p&&vgAllows(e,vgCoords(p[0],p[1]))&&!hits.some(h=>Math.hypot(h[0]-p[0],h[1]-p[1])<Math.min(dx,dy)*1e-7))hits.push(p);
+  }
+  // Resolve the ambiguous four-edge marching-squares case by the center sign.
+  if(hits.length===4){
+   const center=contour.sample([x0+(i+.5)*dx,y0+(j+.5)*dy]);
+   if(Number.isFinite(center)&&(center<0)===(f[0]<0))hits.push(hits.shift());
+  }
+  for(let h=0;h+1<hits.length;h+=2){moveGraphPath(...project2(...hits[h]));lineGraphPath(...project2(...hits[h+1]));}
+ }
+ strokeGraphPath(entryRGBA(e),vgLineWeight(e,2.4));
+}
 function vgPointOutline(e){return hoveredPointId===e.id?'#ffffff':'#000000'}
 function vgPointLabelEntry(hit){return [...expressions,...constants].find(e=>e.id===hit.id)||hit.entry}
 function drawPointMarker(e,is3){
@@ -3292,10 +3411,12 @@ function drawVec(e,is3,field,field2D=false){
 // Shared world-space mesh is reused by onscreen geometry and volume-depth compositing.
 const implicitMeshCache=new Map();
 function implicitSurfaceTriangles(e,region=null){
- const N=Math.max(17,Math.min(37,Math.round(quality*.66))),B=['x','y','z'].map(a=>bounds(a));
+ const N=Math.max(17,Math.min(49,Math.round(quality*.75))),B=['x','y','z'].map(a=>bounds(a));
  const key=JSON.stringify([e.text,N,B,Object.entries(scalarVals).sort(),frameTime,!!region]);
  if(implicitMeshCache.has(key))return implicitMeshCache.get(key);
- const ast=region?null:checkVariables(compiled(e.text,'implicit3'));const value=(x,y,z)=>region?region.test(vgCoords(x,y,z)).m:bounded(ast,vgCoords(x,y,z),1e25);
+ const ast=region?null:checkVariables(compiled(e.text,'implicit3'));
+ const contour=region?null:vgContourSampler(ast,p=>vgCoords(...p));
+ const value=(x,y,z)=>region?region.test(vgCoords(x,y,z)).m:contour.sample([x,y,z]);
  const steps=B.map(b=>(b[1]-b[0])/(N-1)),grid=new Float64Array(N*N*N),index=(i,j,k)=>(k*N+j)*N+i;
  const point=(i,j,k)=>[B[0][0]+i*steps[0],B[1][0]+j*steps[1],B[2][0]+k*steps[2]];
  for(let k=0;k<N;k++)for(let j=0;j<N;j++)for(let i=0;i<N;i++){
@@ -3305,20 +3426,10 @@ function implicitSurfaceTriangles(e,region=null){
  const tetra=[[0,1,2,6],[0,2,3,6],[0,3,7,6],[0,7,4,6],[0,4,5,6],[0,5,1,6]];
  const triangles=[],limit=100000;
  function intersection(A,B,fa,fb){
-  let lo=0,hi=1,vLo=fa,vHi=fb;
-  // Refine the edge zero with a bracketed secant step. This preserves the
-  // triangle mesh while reducing geometric error for nonlinear equations.
-  let t=Math.abs(fa-fb)>1e-22?Math.max(0,Math.min(1,fa/(fa-fb))):.5;
-  if(fa===0)t=0;else if(fb===0)t=1;else for(let pass=0;pass<4;pass++){
-   const P=[A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t];
-   const v=value(...P);
-   if(!Number.isFinite(v)||Math.abs(v)<1e-8)break;
-   if((v<0)===(vLo<0)){lo=t;vLo=v}else{hi=t;vHi=v}
-   const den=vLo-vHi;t=Math.abs(den)>1e-22?lo+(hi-lo)*Math.max(0,Math.min(1,vLo/den)):(lo+hi)/2;
-  }
-  return [A[0]+(B[0]-A[0])*t,A[1]+(B[1]-A[1])*t,A[2]+(B[2]-A[2])*t];
+  return contour?contour.root(A,B,fa,fb):vgEdgeZero(p=>value(...p),A,B,fa,fb);
  }
  function triangle(a,b,c){
+  if(!a||!b||!c)return;
   const ax=b[0]-a[0],ay=b[1]-a[1],az=b[2]-a[2],bx=c[0]-a[0],by=c[1]-a[1],bz=c[2]-a[2];
   const nx=ay*bz-az*by,ny=az*bx-ax*bz,nz=ax*by-ay*bx;
   if(nx*nx+ny*ny+nz*nz<1e-22) return;
@@ -3712,7 +3823,11 @@ function glslExpression(ast,params){
   if(f==='atan2')return 'atan('+x[0]+','+x[1]+')';
   if(f==='pow')return 'pow('+x[0]+','+x[1]+')';
   if(f==='hypot')return 'length(vec'+x.length+'('+x.join(',')+'))';
-  if(f==='root')return '(sign('+x[0]+')*pow(abs('+x[0]+'),1.0/'+x[1]+'))';
+  if(f==='root'){
+    if(x.length!==2)throw Error('root expects two arguments');
+    const a='('+x[0]+')',n='('+x[1]+')',invalid='uintBitsToFloat(0x7fc00000u)';
+    return '(('+n+'==0.0||('+a+'==0.0&&'+n+'<0.0))?'+invalid+':('+a+'<0.0?((floor('+n+')=='+n+'&&mod(abs('+n+'),2.0)==1.0)?-pow(-'+a+',1.0/'+n+'):'+invalid+'):pow('+a+',1.0/'+n+')))';
+   }
   if(f==='sinc')return '(abs('+x[0]+')<0.000001?1.0:sin('+x[0]+')/'+x[0]+')';
   if(f==='factorial'){
    // Non-integer Gamma not implemented by our main evaluator either.
@@ -4071,7 +4186,8 @@ function draw(){
  gpuGeometry.resetFrame();
  vgAxisLabels=[];vgAxisLabelMasks=[];
  drawnPointHits=[];
- let active=[...expressions,...constants].filter(e=>e.show&&e.text.trim()),plottable=[];
+ let active=[...expressions,...constants].filter(e=>e.show&&e.text.trim()),plottable=[],renderErrors=[];
+ const report=(e,ex)=>renderErrors.push((e.text||'Graph').slice(0,45)+': '+(ex?.message||String(ex)));
  for(let e of active){try{const kind=resolvedKind(e),d=vgSplitDomain(e.text);plottable.push({entry:d.domain&&!kind.startsWith('inequality')?{...e,text:d.base,_vgDomain:vgPredicate(d.domain)}:e,kind})}catch{}}
  let legend=false,legendRange=0;
  if(mode==='2d'){
@@ -4082,10 +4198,10 @@ function draw(){
    const result=drawCloudSlicesGPU(fields);legend=!result.empty;legendRange=result.range;
    gpuStatus=result.empty?'Zero field (skipped)':'WebGL 2 heatmap';
   }catch(ex){gpuStatus=renderModes.heatmap==='cpu'?'CPU heatmap':'CPU heatmap fallback';
-   for(const {entry:e} of fields)try{legendRange=Math.max(legendRange,drawCloudSlice2CPU(e))}catch{}
+   for(const {entry:e} of fields)try{legendRange=Math.max(legendRange,drawCloudSlice2CPU(e))}catch(ex){report(e,ex)}
    legend=legendRange>1e-12;
   }}
-  for(const {entry:e,kind} of plottable)if(kind==='inequality2')try{drawInequality2(e)}catch{}
+  for(const {entry:e,kind} of plottable)if(kind==='inequality2')try{drawInequality2(e)}catch(ex){report(e,ex)}
   if(axesOn||axisNumbersOn||gridLinesOn)withGPU('axes',draw2Axes);
   for(const {entry:e,kind} of plottable){try{
    if(kind==='func2')withGPU('lines',()=>draw2Func(e));
@@ -4097,7 +4213,7 @@ function draw(){
    else if(kind==='vector2'||kind==='vector3')withGPU('vectors',()=>drawVec(e,false,false));
    else if(kind==='field2'||kind==='field3')withGPU('vectors',()=>drawVec(e,false,true));
    else if(kind==='point')withGPU('points',()=>drawPointMarker(e,false));
-  }catch(ex){console.debug('Plot skipped:',ex.message)}}
+  }catch(ex){report(e,ex)}}
   gpuGeometry.present();
  }else{
   gpuStatus='';
@@ -4112,7 +4228,7 @@ function draw(){
    if(kind==='surface'||kind==='scalar2')drawSurface(e,renderables,projectedSurfaces);
    else if((kind==='func2'||kind==='implicit2')&&extends3D(e))drawExtruded2D(e,kind,renderables);
    else if(kind==='implicit3')drawImplicit3(e,renderables);else if(kind==='inequality3'||kind==='inequality2')drawInequality3(e,renderables);
-  }catch(ex){console.debug('Surface skipped:',ex.message)}}
+  }catch(ex){report(e,ex)}}
   renderables.sort((a,b)=>b.depth-a.depth);
   for(let q of renderables){if(q.kind==='cloud')withGPU('points',()=>drawCloudPoint(q));else withGPU('surfaces',()=>drawPolygon(q))}
   for(let {entry:e,kind} of plottable){try{
@@ -4121,7 +4237,7 @@ function draw(){
    else if(kind==='field3')withGPU('vectors',()=>drawVec(e,true,true));
    else if(kind==='field2')withGPU('vectors',()=>drawVec(e,true,true,true));
    else if(kind==='point')withGPU('points',()=>drawPointMarker(e,true));
-  }catch(ex){console.debug('Object skipped:',ex.message)}}
+  }catch(ex){report(e,ex)}}
   // Geometry is fully resolved before volume compositing; a zero volume adds no pixels.
   if(labelsOnGPU)vgQueueAxisLabelsGPU(hasVolume);
   gpuGeometry.present();
@@ -4132,6 +4248,7 @@ function draw(){
   }
  }
  vgPaintPointLabels();
+ const warning=$('vgRenderWarning');if(warning){warning.hidden=!renderErrors.length;warning.textContent=renderErrors.length?'Graph error ('+renderErrors.length+'): '+renderErrors[0]:'';}
  refreshBoundsInputs();updateCloudLegend(legend,legendRange,mode==='2d');
  const geometrySummary=Object.values(renderModes).some(s=>s==='gpu')?(gpuGeometry.gl&&!gpuGeometry.failed?'GPU geometry':'CPU geometry fallback'):'CPU geometry';
  $('hud').textContent=(mode==='3d'?`3D · orbit ${Math.round(yaw*180/Math.PI)}° / ${Math.round(pitch*180/Math.PI)}°`:`2D · zoom ${Math.round(scale*100)}%`)+` · x ${formatNumber(axisZoom.x)}× y ${formatNumber(axisZoom.y)}× z ${formatNumber(axisZoom.z)}× · ${geometrySummary}`+(gpuStatus?' · '+gpuStatus:'');
